@@ -1,18 +1,33 @@
-import { Toaster } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import Dashboard from "@/pages/Dashboard";
+import ClientsPage from "@/pages/ClientsPage";
+import ProgramsPage from "@/pages/ProgramsPage";
+import MealsPage from "@/pages/MealsPage";
+import CheckInsPage from "@/pages/CheckInsPage";
+import MessagingPage from "@/pages/MessagingPage";
+import SchedulingPage from "@/pages/SchedulingPage";
+import RevenuePage from "@/pages/RevenuePage";
+import LeadsPage from "@/pages/LeadsPage";
+import BrandPage from "@/pages/BrandPage";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { Navigation } from "./components/Navigation";
 
 function Router() {
-  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path={"/"} component={Dashboard} />
+      <Route path={"/clients"} component={ClientsPage} />
+      <Route path={"/programs"} component={ProgramsPage} />
+      <Route path={"/meals"} component={MealsPage} />
+      <Route path={"/check-ins"} component={CheckInsPage} />
+      <Route path={"/messaging"} component={MessagingPage} />
+      <Route path={"/scheduling"} component={SchedulingPage} />
+      <Route path={"/revenue"} component={RevenuePage} />
+      <Route path={"/leads"} component={LeadsPage} />
+      <Route path={"/brand"} component={BrandPage} />
       <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
       <Route component={NotFound} />
     </Switch>
   );
@@ -30,10 +45,10 @@ function App() {
         defaultTheme="dark"
         // switchable
       >
-        <TooltipProvider>
-          <Toaster />
+        <div style={{ backgroundColor: "var(--black)", color: "var(--white)" }} className="min-h-screen">
+          <Navigation />
           <Router />
-        </TooltipProvider>
+        </div>
       </ThemeProvider>
     </ErrorBoundary>
   );

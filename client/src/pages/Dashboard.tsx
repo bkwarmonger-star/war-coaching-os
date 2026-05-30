@@ -1,9 +1,8 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Button } from "@/components/Button";
+import { Card, CardHeader, CardBody } from "@/components/Card";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -37,7 +36,7 @@ export default function Dashboard() {
   if (trainerLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen" style={{ backgroundColor: "var(--black)" }}>
-        <Loader2 className="animate-spin" style={{ color: "var(--gold)" }} />
+        <div className="spinner"></div>
       </div>
     );
   }
@@ -122,164 +121,143 @@ export default function Dashboard() {
           {/* Left Column */}
           <div className="col-span-2 space-y-6">
             {/* Clients Table */}
-            <Card
-              style={{
-                backgroundColor: "var(--surface)",
-                borderColor: "var(--border)",
-              }}
-              className="border overflow-hidden"
-            >
-              <div
-                className="px-6 py-4 border-b flex items-center justify-between"
-                style={{ borderColor: "var(--border)" }}
-              >
+            <Card>
+              <CardHeader className="flex items-center justify-between">
                 <h2 className="font-bebas text-xl" style={{ color: "var(--white)", letterSpacing: "0.05em" }}>
                   ACTIVE CLIENTS
                 </h2>
                 <div className="font-oswald text-xs uppercase cursor-pointer" style={{ color: "var(--gold)" }}>
                   View All
                 </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr style={{ borderBottomColor: "var(--border)" }} className="border-b">
-                      <th
-                        className="px-6 py-3 text-left font-oswald text-xs uppercase tracking-wider"
-                        style={{ color: "var(--muted)" }}
-                      >
-                        Client
-                      </th>
-                      <th
-                        className="px-6 py-3 text-left font-oswald text-xs uppercase tracking-wider"
-                        style={{ color: "var(--muted)" }}
-                      >
-                        Type
-                      </th>
-                      <th
-                        className="px-6 py-3 text-left font-oswald text-xs uppercase tracking-wider"
-                        style={{ color: "var(--muted)" }}
-                      >
-                        Progress
-                      </th>
-                      <th
-                        className="px-6 py-3 text-left font-oswald text-xs uppercase tracking-wider"
-                        style={{ color: "var(--muted)" }}
-                      >
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {clientsData?.clients && clientsData.clients.length > 0 ? (
-                      clientsData.clients.slice(0, 5).map((client) => (
-                        <tr
-                          key={client.id}
-                          style={{ borderBottomColor: "rgba(255,255,255,0.04)" }}
-                          className="border-b hover:bg-surface2 transition-colors cursor-pointer"
-                          onClick={() => setSelectedClient(client.id)}
+              </CardHeader>
+              <CardBody className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr style={{ borderBottomColor: "var(--border)" }} className="border-b">
+                        <th
+                          className="px-6 py-3 text-left font-oswald text-xs uppercase tracking-wider"
+                          style={{ color: "var(--muted)" }}
                         >
-                          <td className="px-6 py-4">
-                            <div className="font-oswald font-semibold" style={{ color: "var(--white)" }}>
-                              {client.name}
-                            </div>
-                            <div className="font-rajdhani text-xs mt-1" style={{ color: "var(--muted)" }}>
-                              {client.email}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 font-rajdhani text-sm" style={{ color: "var(--muted)" }}>
-                            <span className="tag tag-gold">{client.trainingType || "N/A"}</span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="progress-bar">
-                              <div className="progress-fill" style={{ width: "65%" }}></div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="tag tag-green">{client.status}</span>
+                          Client
+                        </th>
+                        <th
+                          className="px-6 py-3 text-left font-oswald text-xs uppercase tracking-wider"
+                          style={{ color: "var(--muted)" }}
+                        >
+                          Type
+                        </th>
+                        <th
+                          className="px-6 py-3 text-left font-oswald text-xs uppercase tracking-wider"
+                          style={{ color: "var(--muted)" }}
+                        >
+                          Progress
+                        </th>
+                        <th
+                          className="px-6 py-3 text-left font-oswald text-xs uppercase tracking-wider"
+                          style={{ color: "var(--muted)" }}
+                        >
+                          Status
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {clientsData?.clients && clientsData.clients.length > 0 ? (
+                        clientsData.clients.slice(0, 5).map((client) => (
+                          <tr
+                            key={client.id}
+                            style={{ borderBottomColor: "rgba(255,255,255,0.04)" }}
+                            className="border-b hover:bg-surface2 transition-colors cursor-pointer"
+                            onClick={() => setSelectedClient(client.id)}
+                          >
+                            <td className="px-6 py-4">
+                              <div className="font-oswald font-semibold" style={{ color: "var(--white)" }}>
+                                {client.name}
+                              </div>
+                              <div className="font-rajdhani text-xs mt-1" style={{ color: "var(--muted)" }}>
+                                {client.email}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 font-rajdhani text-sm" style={{ color: "var(--muted)" }}>
+                              <span className="tag tag-gold">{client.trainingType || "N/A"}</span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="progress-bar">
+                                <div className="progress-fill" style={{ width: "65%" }}></div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="tag tag-green">{client.status}</span>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} className="px-6 py-8 text-center">
+                            <p className="font-rajdhani" style={{ color: "var(--muted)" }}>
+                              No clients yet. Create your first client to get started.
+                            </p>
                           </td>
                         </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={4} className="px-6 py-8 text-center">
-                          <p className="font-rajdhani" style={{ color: "var(--muted)" }}>
-                            No clients yet. Create your first client to get started.
-                          </p>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </CardBody>
             </Card>
 
             {/* Income Goal Ring */}
-            <Card
-              style={{
-                backgroundColor: "var(--surface)",
-                borderColor: "var(--border)",
-              }}
-              className="border p-6"
-            >
-              <div className="flex items-center gap-6">
-                <div className="flex-shrink-0">
-                  <svg width="80" height="80" viewBox="0 0 80 80" className="transform -rotate-90">
-                    <circle
-                      cx="40"
-                      cy="40"
-                      r="36"
-                      fill="none"
-                      stroke="var(--surface3)"
-                      strokeWidth="4"
-                    />
-                    <circle
-                      cx="40"
-                      cy="40"
-                      r="36"
-                      fill="none"
-                      stroke="var(--gold)"
-                      strokeWidth="4"
-                      strokeDasharray={`${2 * Math.PI * 36 * (revenueProgress / 100)} ${2 * Math.PI * 36}`}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <div className="font-oswald text-xs uppercase tracking-widest" style={{ color: "var(--muted)" }}>
-                    Income Goal Progress
+            <Card>
+              <CardBody>
+                <div className="flex items-center gap-6">
+                  <div className="flex-shrink-0">
+                    <svg width="80" height="80" viewBox="0 0 80 80" className="transform -rotate-90">
+                      <circle
+                        cx="40"
+                        cy="40"
+                        r="36"
+                        fill="none"
+                        stroke="var(--surface3)"
+                        strokeWidth="4"
+                      />
+                      <circle
+                        cx="40"
+                        cy="40"
+                        r="36"
+                        fill="none"
+                        stroke="var(--gold)"
+                        strokeWidth="4"
+                        strokeDasharray={`${2 * Math.PI * 36 * (revenueProgress / 100)} ${2 * Math.PI * 36}`}
+                        strokeLinecap="round"
+                      />
+                    </svg>
                   </div>
-                  <div className="font-bebas text-3xl mt-2" style={{ color: "var(--white)", letterSpacing: "0.05em" }}>
-                    ${monthlyRevenue.toFixed(0)}
-                  </div>
-                  <div className="font-rajdhani text-sm mt-1" style={{ color: "var(--gold)" }}>
-                    Target: ${incomeGoal} ({revenueProgress.toFixed(0)}%)
+                  <div className="flex-1">
+                    <div className="font-oswald text-xs uppercase tracking-widest" style={{ color: "var(--muted)" }}>
+                      Income Goal Progress
+                    </div>
+                    <div className="font-bebas text-3xl mt-2" style={{ color: "var(--white)", letterSpacing: "0.05em" }}>
+                      ${monthlyRevenue.toFixed(0)}
+                    </div>
+                    <div className="font-rajdhani text-sm mt-1" style={{ color: "var(--gold)" }}>
+                      Target: ${incomeGoal} ({revenueProgress.toFixed(0)}%)
+                    </div>
                   </div>
                 </div>
-              </div>
+              </CardBody>
             </Card>
           </div>
 
           {/* Right Column */}
           <div className="space-y-6">
             {/* Today's Schedule */}
-            <Card
-              style={{
-                backgroundColor: "var(--surface)",
-                borderColor: "var(--border)",
-              }}
-              className="border overflow-hidden"
-            >
-              <div
-                className="px-4 py-3 border-b"
-                style={{ borderColor: "var(--border)" }}
-              >
+            <Card>
+              <CardHeader>
                 <h3 className="font-bebas text-lg" style={{ color: "var(--white)", letterSpacing: "0.05em" }}>
                   TODAY'S SCHEDULE
                 </h3>
-              </div>
-              <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
+              </CardHeader>
+              <CardBody className="space-y-2 max-h-64 overflow-y-auto p-4">
                 {upcomingSessions && upcomingSessions.length > 0 ? (
                   upcomingSessions.slice(0, 4).map((session) => (
                     <div
@@ -311,75 +289,37 @@ export default function Dashboard() {
                     </p>
                   </div>
                 )}
-              </div>
+              </CardBody>
             </Card>
 
             {/* Quick Actions */}
-            <Card
-              style={{
-                backgroundColor: "var(--surface)",
-                borderColor: "var(--border)",
-              }}
-              className="border overflow-hidden"
-            >
-              <div
-                className="px-4 py-3 border-b"
-                style={{ borderColor: "var(--border)" }}
-              >
+            <Card>
+              <CardHeader>
                 <h3 className="font-bebas text-lg" style={{ color: "var(--white)", letterSpacing: "0.05em" }}>
                   QUICK ACTIONS
                 </h3>
-              </div>
-              <div className="p-4 space-y-2">
-                <Button
-                  className="w-full font-oswald text-xs uppercase tracking-wider"
-                  style={{
-                    backgroundColor: "var(--gold)",
-                    color: "#000",
-                  }}
-                >
+              </CardHeader>
+              <CardBody className="space-y-2">
+                <Button variant="primary" className="w-full">
                   + New Client
                 </Button>
-                <Button
-                  variant="outline"
-                  className="w-full font-oswald text-xs uppercase tracking-wider"
-                  style={{
-                    borderColor: "var(--border)",
-                    color: "var(--muted)",
-                  }}
-                >
+                <Button variant="outline" className="w-full">
                   Generate Program
                 </Button>
-                <Button
-                  variant="outline"
-                  className="w-full font-oswald text-xs uppercase tracking-wider"
-                  style={{
-                    borderColor: "var(--border)",
-                    color: "var(--muted)",
-                  }}
-                >
+                <Button variant="outline" className="w-full">
                   Create Meal Plan
                 </Button>
-              </div>
+              </CardBody>
             </Card>
 
             {/* Alerts */}
-            <Card
-              style={{
-                backgroundColor: "var(--surface)",
-                borderColor: "var(--border)",
-              }}
-              className="border overflow-hidden"
-            >
-              <div
-                className="px-4 py-3 border-b"
-                style={{ borderColor: "var(--border)" }}
-              >
+            <Card>
+              <CardHeader>
                 <h3 className="font-bebas text-lg" style={{ color: "var(--white)", letterSpacing: "0.05em" }}>
                   ALERTS
                 </h3>
-              </div>
-              <div className="p-4 space-y-3">
+              </CardHeader>
+              <CardBody className="space-y-3">
                 {pendingCheckInsCount > 0 && (
                   <div className="alert-item danger">
                     <div style={{ color: "var(--red)" }}>⚠</div>
@@ -400,11 +340,11 @@ export default function Dashboard() {
                       Revenue Goal: {revenueProgress.toFixed(0)}% Complete
                     </div>
                     <div className="font-rajdhani text-xs mt-1" style={{ color: "var(--muted)" }}>
-                      ${(parseFloat(incomeGoal.toString()) - monthlyRevenue).toFixed(0)} remaining
+                      ${(incomeGoal - monthlyRevenue).toFixed(0)} remaining
                     </div>
                   </div>
                 </div>
-              </div>
+              </CardBody>
             </Card>
           </div>
         </div>
