@@ -10,7 +10,6 @@ export default function LeadsPage() {
     email: "",
     phone: "",
     source: "referral",
-    status: "new",
     notes: "",
   });
 
@@ -19,7 +18,7 @@ export default function LeadsPage() {
   const createMutation = trpc.leads.create.useMutation({
     onSuccess: () => {
       setShowForm(false);
-      setFormData({ name: "", email: "", phone: "", source: "referral", status: "new", notes: "" });
+      setFormData({ name: "", email: "", phone: "", source: "referral", notes: "" });
       refetch();
     },
   });
@@ -31,7 +30,7 @@ export default function LeadsPage() {
       email: formData.email,
       phone: formData.phone,
       source: formData.source,
-      status: formData.status,
+
       notes: formData.notes,
     });
   };
@@ -105,21 +104,7 @@ export default function LeadsPage() {
                     <option value="website">Website</option>
                     <option value="other">Other</option>
                   </select>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    style={{
-                      backgroundColor: "var(--surface2)",
-                      borderColor: "var(--border)",
-                      color: "var(--white)",
-                    }}
-                    className="border rounded px-4 py-2 font-rajdhani"
-                  >
-                    <option value="new">New</option>
-                    <option value="contacted">Contacted</option>
-                    <option value="qualified">Qualified</option>
-                    <option value="converted">Converted</option>
-                  </select>
+
                   <textarea
                     placeholder="Notes"
                     value={formData.notes}

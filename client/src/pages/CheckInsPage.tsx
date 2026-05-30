@@ -12,7 +12,7 @@ export default function CheckInsPage() {
     notes: "",
   });
 
-  const { data: checkInsData, refetch } = trpc.checkIns.list.useQuery({ limit: 50, offset: 0 });
+  const { data: checkInsData, refetch } = trpc.checkIns.getPending.useQuery();
   const createMutation = trpc.checkIns.create.useMutation({
     onSuccess: () => {
       setShowForm(false);
@@ -28,7 +28,7 @@ export default function CheckInsPage() {
       weight: formData.weight,
       energyLevel: parseInt(formData.energyLevel),
       notes: formData.notes,
-      photoUrl: "",
+      photoUrls: [],
     });
   };
 
@@ -85,9 +85,9 @@ export default function CheckInsPage() {
                     }}
                     className="border rounded px-4 py-2 font-rajdhani col-span-2"
                   >
-                    <option value="1">Low Energy</option>
-                    <option value="2">Medium Energy</option>
-                    <option value="3">High Energy</option>
+                    <option value="low">Low Energy</option>
+                    <option value="medium">Medium Energy</option>
+                    <option value="high">High Energy</option>
                   </select>
                   <textarea
                     placeholder="Notes"
