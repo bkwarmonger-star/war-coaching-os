@@ -174,3 +174,11 @@
 - [x] Display assigned programs on client profile with unassign button
 - [x] Wire Assign quick-action button to modal in ClientsPage
 - [x] Unassign/remove program functionality (programs.unassign)
+
+
+## Phase 20: Public Client Profile View
+- [x] Server query to fetch client data for public view (portal.getPublicProfile)
+- [x] PublicClientProfilePage component with program, meals, check-ins
+- [x] Share Profile button on ClientDetailPage
+- [x] Copy-to-clipboard functionality for profile link
+- [x] Route registered at /public-profile/:clientId

@@ -131,6 +131,16 @@ export default function ClientDetailPage() {
                   Edit
                 </Button>
                 <Button
+                  onClick={() => {
+                    const url = `${window.location.origin}/public-profile/${clientId}`;
+                    navigator.clipboard.writeText(url);
+                    alert("Profile link copied to clipboard!");
+                  }}
+                  style={{ backgroundColor: "var(--gold)", color: "#000" }}
+                >
+                  📋 Share Profile
+                </Button>
+                <Button
                   variant="danger"
                   onClick={() => {
                     if (confirm("Are you sure you want to delete this client?")) {

@@ -1004,8 +1004,39 @@ Return as JSON with structure: {
         const fileKey = `check-in-photos/${client[0].id}/${input.pose}_${timestamp}.${ext}`;
         const { url } = await storagePut(fileKey, buffer, input.mimeType);
         return { success: true, url, pose: input.pose };
+            }),
+    // Get public client profile (no auth required)
+    getPublicProfile: publicProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const client = await db
+          .select()
+          .from(clients)
+          .where(eq(clients.id, input.clientId))
+          .limit(1);
+        if (client.length === 0) throw new Error("Client not found");
+        const clientData = client[0];
+        // Get assigned programs
+        const assignedPrograms = await db
+          .select()
+          .from(programs)
+          .where(eq(programs.clientId, input.clientId))
+          .limit(1);
+        // Get recent check-ins
+        const recentCheckIns = await db
+          .select()
+          .from(checkIns)
+          .where(eq(checkIns.clientId, input.clientId))
+          .orderBy(desc(checkIns.createdAt))
+          .limit(3);
+        return {
+          client: clientData,
+          programs: assignedPrograms,
+          checkIns: recentCheckIns,
+        };
       }),
   }),
 });
-
 export type AppRouter = typeof appRouter;

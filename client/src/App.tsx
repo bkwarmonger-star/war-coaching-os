@@ -16,6 +16,7 @@ import PhotoProgressPage from "@/pages/PhotoProgressPage";
 import ClientPortalPage from "@/pages/ClientPortalPage";
 import ClientDetailPage from "@/pages/ClientDetailPage";
 import ProgramDetailPage from "@/pages/ProgramDetailPage";
+import PublicClientProfilePage from "@/pages/PublicClientProfilePage";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -27,6 +28,7 @@ function Router() {
       <Route path={"/"} component={Dashboard} />
       <Route path={"/clients"} component={ClientsPage} />
       <Route path={"/clients/:id"} component={ClientDetailPage} />
+      <Route path={"/public-profile/:clientId"} component={PublicClientProfilePage} />
       <Route path={"/programs"} component={ProgramsPage} />
       <Route path={"/programs/:id"} component={ProgramDetailPage} />
       <Route path={"/meals"} component={MealsPage} />
