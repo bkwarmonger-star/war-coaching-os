@@ -11,6 +11,7 @@ import LeadsPage from "@/pages/LeadsPage";
 import BrandPage from "@/pages/BrandPage";
 import ProgressPage from "@/pages/ProgressPage";
 import ConsultationsPage from "@/pages/ConsultationsPage";
+import VideoCallPage from "@/pages/VideoCallPage";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -31,6 +32,7 @@ function Router() {
       <Route path={"/revenue"} component={RevenuePage} />
       <Route path={"/leads"} component={LeadsPage} />
       <Route path={"/brand"} component={BrandPage} />
+      <Route path={"/video"} component={VideoCallPage} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

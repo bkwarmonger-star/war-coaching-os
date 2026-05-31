@@ -117,4 +117,4 @@
 - [x] Document upload system for customization forms
 - [x] Services & pricing management
 - [x] Admin account setup for Justin Watson (Bkwarmonger@gmail.com)
-- [ ] Google Voice/video call integration (optional Phase 2)
+- [x] Video call page with Jitsi Meet embed (create/join rooms, client-specific rooms, call UI)
