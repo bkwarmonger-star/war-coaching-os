@@ -1,6 +1,6 @@
-import { eq, and, desc, asc, like, gte, lte } from "drizzle-orm";
+import { eq, and, desc, asc, gte, lte, like } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, trainers, clients, programs, checkIns, messages, sessions, packages, subscriptions, leads, referrals } from "../drizzle/schema";
+import { InsertUser, users, trainers, clients, programs, checkIns, messages, sessions, packages, subscriptions, leads, referrals, progressMetrics, InsertProgressMetric, bodyComposition, InsertBodyComposition, consultations, InsertConsultation, services, InsertService, documents, InsertDocument, payments, InsertPayment } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -380,4 +380,106 @@ export async function getReferralsByTrainer(trainerId: number) {
     .from(referrals)
     .where(eq(referrals.trainerId, trainerId))
     .orderBy(desc(referrals.createdAt));
+}
+
+// Progress Metrics
+export async function createProgressMetric(data: InsertProgressMetric) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(progressMetrics).values(data);
+  return result;
+}
+
+export async function getClientProgressMetrics(clientId: number, trainerId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db
+    .select()
+    .from(progressMetrics)
+    .where(and(eq(progressMetrics.clientId, clientId), eq(progressMetrics.trainerId, trainerId)))
+    .orderBy(desc(progressMetrics.createdAt));
+}
+
+// Body Composition
+export async function createBodyComposition(data: InsertBodyComposition) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.insert(bodyComposition).values(data);
+}
+
+export async function getClientBodyComposition(clientId: number, trainerId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db
+    .select()
+    .from(bodyComposition)
+    .where(and(eq(bodyComposition.clientId, clientId), eq(bodyComposition.trainerId, trainerId)))
+    .orderBy(desc(bodyComposition.createdAt));
+}
+
+// Consultations
+export async function createConsultation(data: InsertConsultation) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.insert(consultations).values(data);
+}
+
+export async function getTrainerConsultations(trainerId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db
+    .select()
+    .from(consultations)
+    .where(eq(consultations.trainerId, trainerId))
+    .orderBy(desc(consultations.createdAt));
+}
+
+// Services
+export async function createService(data: InsertService) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.insert(services).values(data);
+}
+
+export async function getTrainerServices(trainerId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db
+    .select()
+    .from(services)
+    .where(and(eq(services.trainerId, trainerId), eq(services.isActive, true)));
+}
+
+// Documents
+export async function uploadDocument(data: InsertDocument) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.insert(documents).values(data);
+}
+
+export async function getTrainerDocuments(trainerId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db
+    .select()
+    .from(documents)
+    .where(eq(documents.trainerId, trainerId))
+    .orderBy(desc(documents.createdAt));
+}
+
+// Payments
+export async function createPayment(data: InsertPayment) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.insert(payments).values(data);
+}
+
+export async function getTrainerPayments(trainerId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db
+    .select()
+    .from(payments)
+    .where(eq(payments.trainerId, trainerId))
+    .orderBy(desc(payments.createdAt));
 }

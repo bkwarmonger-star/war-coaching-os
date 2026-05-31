@@ -100,3 +100,21 @@
 - [x] Database migrations
 - [x] Production build and testing
 - [x] Deployment to Manus hosting
+
+
+## Phase 14: Enhanced Features - Messaging, Progress Tracking & Payments
+- [ ] Trainer-client real-time messaging system
+- [ ] Client progress tracking dashboard
+- [ ] Metrics upload system (weight, measurements, bloodwork)
+- [ ] Guided body measurement form with calculations
+- [ ] Body composition calculator (BMI, fat %, hydration %)
+- [ ] Photo upload system with positioning guides
+- [ ] Monthly progress comparison view
+- [ ] Consultation booking system
+- [ ] Pre-consultation questionnaires
+- [ ] Stripe payment integration for bookings and packages
+- [ ] Premium trainer profile page with pricing
+- [ ] Document upload system for customization forms
+- [ ] Services & pricing management
+- [ ] Admin account setup for Justin Watson (Bkwarmonger@gmail.com)
+- [ ] Google Voice/video call integration (optional Phase 2)
