@@ -1,9 +1,10 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 
 export function Navigation() {
   const { user, logout } = useAuth();
+  const [location] = useLocation();
 
   const trainerNavItems = [
     { label: "Dashboard", href: "/" },
@@ -39,16 +40,23 @@ export function Navigation() {
           {user && (
             <div className="flex items-center gap-8">
               <div className="flex gap-6 overflow-x-auto">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    style={{ color: "var(--white)" }}
-                    className="font-oswald text-sm uppercase hover:text-gold transition-colors whitespace-nowrap"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+                {navItems.map((item) => {
+                  const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      style={{
+                        color: isActive ? "var(--gold)" : "var(--white)",
+                        borderBottom: isActive ? "2px solid var(--gold)" : "none",
+                        paddingBottom: isActive ? "4px" : "0",
+                      }}
+                      className="font-oswald text-sm uppercase hover:text-gold transition-colors whitespace-nowrap"
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
               </div>
 
               <div className="flex items-center gap-4 border-l" style={{ borderColor: "var(--border)", paddingLeft: "1rem" }}>

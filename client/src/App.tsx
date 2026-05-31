@@ -14,6 +14,7 @@ import ConsultationsPage from "@/pages/ConsultationsPage";
 import VideoCallPage from "@/pages/VideoCallPage";
 import PhotoProgressPage from "@/pages/PhotoProgressPage";
 import ClientPortalPage from "@/pages/ClientPortalPage";
+import ClientDetailPage from "@/pages/ClientDetailPage";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -24,6 +25,7 @@ function Router() {
     <Switch>
       <Route path={"/"} component={Dashboard} />
       <Route path={"/clients"} component={ClientsPage} />
+      <Route path={"/clients/:id"} component={ClientDetailPage} />
       <Route path={"/programs"} component={ProgramsPage} />
       <Route path={"/meals"} component={MealsPage} />
       <Route path={"/check-ins"} component={CheckInsPage} />

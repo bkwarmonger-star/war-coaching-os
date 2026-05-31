@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/Button";
 import { Card, CardHeader, CardBody } from "@/components/Card";
 
 export default function ClientsPage() {
+  const [, setLocation] = useLocation();
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -247,6 +249,9 @@ export default function ClientsPage() {
                     <th className="px-6 py-3 text-left font-oswald text-xs uppercase" style={{ color: "var(--muted)" }}>
                       Status
                     </th>
+                    <th className="px-6 py-3 text-left font-oswald text-xs uppercase" style={{ color: "var(--muted)" }}>
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -255,7 +260,8 @@ export default function ClientsPage() {
                       <tr
                         key={client.id}
                         style={{ borderBottomColor: "rgba(255,255,255,0.04)" }}
-                        className="border-b hover:bg-surface2 transition-colors"
+                        className="border-b hover:bg-surface2 transition-colors cursor-pointer"
+                        onClick={() => setLocation(`/clients/${client.id}`)}
                       >
                         <td className="px-6 py-4 font-oswald" style={{ color: "var(--white)" }}>
                           {client.name}
@@ -275,11 +281,33 @@ export default function ClientsPage() {
                         <td className="px-6 py-4">
                           <span className="tag tag-green">Active</span>
                         </td>
+                        <td className="px-6 py-4 flex gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              alert("Messaging coming soon");
+                            }}
+                            style={{ backgroundColor: "var(--blue)", color: "#fff" }}
+                            className="px-3 py-1 rounded font-oswald text-xs uppercase hover:opacity-80 transition-opacity"
+                          >
+                            Message
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              alert("Program assignment coming soon");
+                            }}
+                            style={{ backgroundColor: "var(--gold)", color: "#000" }}
+                            className="px-3 py-1 rounded font-oswald text-xs uppercase hover:opacity-80 transition-opacity"
+                          >
+                            Assign
+                          </button>
+                        </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="px-6 py-8 text-center">
+                      <td colSpan={7} className="px-6 py-8 text-center">
                         <p className="font-rajdhani" style={{ color: "var(--muted)" }}>
                           No clients yet. Create your first client to get started.
                         </p>

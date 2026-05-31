@@ -152,3 +152,9 @@
 ## Bug Fixes
 - [x] Client creation form button now shows loading state and error messages
 - [x] Fixed sex enum values (M/F/Other → male/female/other) to match server validation
+
+
+## Critical Bugs Fixed
+- [x] Client profile access - built ClientDetailPage with full profile view and edit capability
+- [x] Top menu bar rendering - fixed Navigation styling with active route indicators (gold underline)
+- [x] Quick actions - added Message and Assign buttons to client table rows with proper click handling
