@@ -5,7 +5,7 @@ import { getLoginUrl } from "@/const";
 export function Navigation() {
   const { user, logout } = useAuth();
 
-  const navItems = [
+  const trainerNavItems = [
     { label: "Dashboard", href: "/" },
     { label: "Clients", href: "/clients" },
     { label: "Programs", href: "/programs" },
@@ -20,6 +20,11 @@ export function Navigation() {
     { label: "Video", href: "/video" },
     { label: "Profile", href: "/brand" },
   ];
+
+  const isTrainer = user?.role === "admin";
+  const navItems = isTrainer
+    ? trainerNavItems
+    : [{ label: "My Portal", href: "/portal" }];
 
   return (
     <nav style={{ backgroundColor: "var(--surface)", borderBottomColor: "var(--border)" }} className="border-b">

@@ -129,3 +129,14 @@
 - [x] Client-specific photo gallery
 - [x] Monthly photo-set compliance: detect missing months, flag incomplete sets in UI
 - [x] Pose completion status indicator (show which poses are captured per set)
+
+## Phase 16: Client-Facing Portal
+- [x] Client portal page with personalized dashboard
+- [x] View assigned training programs (exercises, sets, reps, rest, coaching notes)
+- [x] View custom meal plans (daily meals, macros, recipes, shopping list)
+- [x] Submit weekly check-ins (weight, energy, notes)
+- [x] Check-in history and progress timeline
+- [x] Upload progress photos from client side
+- [x] Message trainer directly from portal
+- [x] Client-specific navigation (separate from trainer nav)
+- [x] Unit tests for all portal router procedures (13 tests passing)

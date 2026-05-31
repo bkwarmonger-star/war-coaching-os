@@ -811,6 +811,106 @@ Return as JSON with structure: {
       return await db.select().from(packages);
     }),
   }),
+
+  // Client Portal - procedures for clients to view their own data
+  portal: router({
+    // Get client profile linked to logged-in user
+    getMyProfile: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return null;
+      const result = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).limit(1);
+      return result.length > 0 ? result[0] : null;
+    }),
+    // Get my assigned programs
+    getMyPrograms: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).limit(1);
+      if (client.length === 0) return [];
+      return await db.select().from(programs).where(eq(programs.clientId, client[0].id)).orderBy(desc(programs.createdAt));
+    }),
+    // Get my meal plans (nutrition programs)
+    getMyMealPlans: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).limit(1);
+      if (client.length === 0) return [];
+      return await db.select().from(programs).where(and(eq(programs.clientId, client[0].id), eq(programs.programType, "nutrition"))).orderBy(desc(programs.createdAt));
+    }),
+    // Get my check-in history
+    getMyCheckIns: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).limit(1);
+      if (client.length === 0) return [];
+      return await db.select().from(checkIns).where(eq(checkIns.clientId, client[0].id)).orderBy(desc(checkIns.createdAt));
+    }),
+    // Submit a weekly check-in
+    submitCheckIn: protectedProcedure
+      .input(z.object({
+        weight: z.string().optional(),
+        energyLevel: z.number().min(1).max(10).optional(),
+        notes: z.string().optional(),
+        photoUrls: z.array(z.string()).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).limit(1);
+        if (client.length === 0) throw new Error("Client profile not found. Contact your trainer.");
+        const result = await db.insert(checkIns).values({
+          clientId: client[0].id,
+          trainerId: client[0].trainerId,
+          weight: input.weight as any,
+          energyLevel: input.energyLevel,
+          notes: input.notes,
+          photoUrls: JSON.stringify(input.photoUrls || []),
+          status: "pending",
+        });
+        return { success: true, checkInId: (result as any)[0].insertId };
+      }),
+    // Get my messages with trainer
+    getMyMessages: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).limit(1);
+      if (client.length === 0) return [];
+      return await db.select().from(messages).where(eq(messages.clientId, client[0].id)).orderBy(messages.createdAt);
+    }),
+    // Send message to trainer
+    sendMessage: protectedProcedure
+      .input(z.object({ content: z.string().min(1) }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).limit(1);
+        if (client.length === 0) throw new Error("Client profile not found. Contact your trainer.");
+        const result = await db.insert(messages).values({
+          trainerId: client[0].trainerId,
+          clientId: client[0].id,
+          senderId: ctx.user.id,
+          content: input.content,
+          isRead: false,
+        });
+        return { success: true, messageId: (result as any)[0].insertId };
+      }),
+    // Get my progress metrics
+    getMyProgress: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).limit(1);
+      if (client.length === 0) return [];
+      return await db.select().from(progressMetrics).where(eq(progressMetrics.clientId, client[0].id)).orderBy(desc(progressMetrics.createdAt));
+    }),
+    // Get my upcoming sessions
+    getMySessions: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).limit(1);
+      if (client.length === 0) return [];
+      return await db.select().from(sessions).where(and(eq(sessions.clientId, client[0].id), gte(sessions.startTime, new Date()))).orderBy(sessions.startTime);
+    }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
