@@ -120,9 +120,9 @@ export default function ClientsPage() {
                     className="border rounded px-4 py-2 font-rajdhani"
                   >
                     <option value="">Select Sex</option>
-                    <option value="M">Male</option>
-                    <option value="F">Female</option>
-                    <option value="Other">Other</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
                   </select>
                   <input
                     type="number"
@@ -202,9 +202,16 @@ export default function ClientsPage() {
                     <option value="adaptive">Adaptive</option>
                   </select>
                 </div>
-                <Button variant="primary" type="submit" className="w-full">
-                  Create Client
+                <Button variant="primary" type="submit" className="w-full" disabled={createMutation.isPending}>
+                  {createMutation.isPending ? "Creating..." : "Create Client"}
                 </Button>
+                {createMutation.isError && (
+                  <div style={{ backgroundColor: "rgba(220, 38, 38, 0.1)", borderLeft: "3px solid #dc2626", padding: "12px" }} className="rounded">
+                    <p style={{ color: "#fca5a5", fontSize: "14px" }}>
+                      Error: {createMutation.error?.message || "Failed to create client"}
+                    </p>
+                  </div>
+                )}
               </form>
             </CardBody>
           </Card>

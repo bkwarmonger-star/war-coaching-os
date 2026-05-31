@@ -148,3 +148,7 @@
 - [x] Attach photo URLs to check-in submission
 - [x] Display uploaded photos in check-in history
 - [x] Unit tests for photo upload procedure (16 tests passing)
+
+## Bug Fixes
+- [x] Client creation form button now shows loading state and error messages
+- [x] Fixed sex enum values (M/F/Other → male/female/other) to match server validation
