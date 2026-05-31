@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/Button";
 import { Card, CardHeader, CardBody } from "@/components/Card";
 
 export default function ProgramsPage() {
+  const [, setLocation] = useLocation();
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -126,7 +128,7 @@ export default function ProgramsPage() {
                       {program.duration} weeks
                     </span>
                   </div>
-                  <Button variant="outline" className="w-full">
+                  <Button variant="outline" className="w-full" onClick={() => setLocation(`/programs/${program.id}`)}>
                     View Details
                   </Button>
                 </CardBody>

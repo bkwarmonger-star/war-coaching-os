@@ -256,6 +256,35 @@ export const appRouter = router({
 
         return { success: true, programId: (result as any).insertId };
       }),
+    update: protectedProcedure
+      .input(
+        z.object({
+          programId: z.number(),
+          name: z.string().optional(),
+          description: z.string().optional(),
+          duration: z.number().optional(),
+          content: z.any().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+
+        const trainer = await getTrainerByUserId(ctx.user.id);
+        if (!trainer) throw new Error("Trainer profile not found");
+
+        const program = await getProgramById(input.programId);
+        if (!program || program.trainerId !== trainer.id) throw new Error("Program not found or unauthorized");
+
+        const updateData: any = {};
+        if (input.name !== undefined) updateData.name = input.name;
+        if (input.description !== undefined) updateData.description = input.description;
+        if (input.duration !== undefined) updateData.duration = input.duration;
+        if (input.content !== undefined) updateData.content = JSON.stringify(input.content);
+
+        await db.update(programs).set(updateData).where(eq(programs.id, input.programId));
+        return { success: true };
+      }),
   }),
 
   // AI Exercise Generator
