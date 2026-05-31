@@ -15,6 +15,8 @@ export function Navigation() {
     { label: "Scheduling", href: "/scheduling" },
     { label: "Revenue", href: "/revenue" },
     { label: "Leads", href: "/leads" },
+    { label: "Photos", href: "/photos" },
+    { label: "Progress", href: "/progress" },
     { label: "Video", href: "/video" },
     { label: "Profile", href: "/brand" },
   ];

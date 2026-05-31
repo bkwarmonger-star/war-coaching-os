@@ -30,7 +30,7 @@ import {
   createProgressMetric,
 } from "./db";
 import { clients, programs, checkIns, messages, sessions, packages, subscriptions, leads, referrals, trainers, progressMetrics, consultations } from "../drizzle/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, gte } from "drizzle-orm";
 import { InsertClient } from "../drizzle/schema";
 import { invokeLLM } from "./_core/llm";
 
@@ -651,6 +651,85 @@ Return as JSON with structure: {
         if (!trainer) throw new Error("Trainer profile not found");
 
         return await getClientProgressMetrics(input.clientId, trainer.id);
+      }),
+    uploadProgressPhoto: protectedProcedure
+      .input(
+        z.object({
+          clientId: z.number(),
+          pose: z.enum(["front", "back", "left_side", "right_side"]),
+          photoData: z.string(), // base64 encoded image data
+          notes: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const trainer = await getTrainerByUserId(ctx.user.id);
+        if (!trainer) throw new Error("Trainer profile not found");
+
+        const { storagePut } = await import("./storage");
+        const timestamp = Date.now();
+        const fileKey = `progress-photos/${input.clientId}/${input.pose}_${timestamp}.jpg`;
+        const buffer = Buffer.from(input.photoData, "base64");
+        const { url } = await storagePut(fileKey, buffer, "image/jpeg");
+
+        // Get existing photo set for this month or create new one
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const existingMetrics = await db.select().from(progressMetrics)
+          .where(and(
+            eq(progressMetrics.clientId, input.clientId),
+            eq(progressMetrics.trainerId, trainer.id),
+            eq(progressMetrics.metricType, "photo"),
+            gte(progressMetrics.createdAt, monthStart),
+          ))
+          .orderBy(desc(progressMetrics.createdAt))
+          .limit(1);
+
+        if (existingMetrics.length > 0) {
+          // Add to existing photo set
+          const existing = existingMetrics[0];
+          const currentPhotos = existing.photoUrls ? JSON.parse(existing.photoUrls) : [];
+          currentPhotos.push({ pose: input.pose, url, timestamp });
+          await db.update(progressMetrics)
+            .set({ photoUrls: JSON.stringify(currentPhotos), notes: input.notes || existing.notes })
+            .where(eq(progressMetrics.id, existing.id));
+          return { success: true, metricId: existing.id, photoUrl: url };
+        } else {
+          // Create new photo set
+          const photos = [{ pose: input.pose, url, timestamp }];
+          const result = await db.insert(progressMetrics).values({
+            clientId: input.clientId,
+            trainerId: trainer.id,
+            metricType: "photo",
+            photoUrls: JSON.stringify(photos),
+            notes: input.notes,
+          });
+          return { success: true, metricId: (result as any).insertId, photoUrl: url };
+        }
+      }),
+    getPhotoSets: protectedProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const trainer = await getTrainerByUserId(ctx.user.id);
+        if (!trainer) throw new Error("Trainer profile not found");
+
+        const photoMetrics = await db.select().from(progressMetrics)
+          .where(and(
+            eq(progressMetrics.clientId, input.clientId),
+            eq(progressMetrics.trainerId, trainer.id),
+            eq(progressMetrics.metricType, "photo"),
+          ))
+          .orderBy(desc(progressMetrics.createdAt));
+
+        return photoMetrics.map((m) => ({
+          id: m.id,
+          date: m.createdAt,
+          photos: m.photoUrls ? JSON.parse(m.photoUrls) : [],
+          notes: m.notes,
+        }));
       }),
   }),
 

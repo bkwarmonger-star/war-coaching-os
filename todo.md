@@ -118,3 +118,14 @@
 - [x] Services & pricing management
 - [x] Admin account setup for Justin Watson (Bkwarmonger@gmail.com)
 - [x] Video call page with Jitsi Meet embed (create/join rooms, client-specific rooms, call UI)
+
+## Phase 15: Guided Photo Upload System
+- [x] SVG silhouette overlays for front, back, and side poses
+- [x] Photo upload interface with alignment guides and instructions
+- [x] Camera capture support (mobile-friendly)
+- [x] Photo set management (minimum 1 per month)
+- [x] Monthly comparison view (side-by-side progress photos)
+- [x] Photo history timeline
+- [x] Client-specific photo gallery
+- [x] Monthly photo-set compliance: detect missing months, flag incomplete sets in UI
+- [x] Pose completion status indicator (show which poses are captured per set)
