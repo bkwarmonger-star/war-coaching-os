@@ -1,7 +1,7 @@
 import { eq, and, desc, asc, gte, lte, like } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, trainers, clients, programs, checkIns, messages, sessions, packages, subscriptions, leads, referrals, progressMetrics, InsertProgressMetric, bodyComposition, InsertBodyComposition, consultations, InsertConsultation, services, InsertService, documents, InsertDocument, payments, InsertPayment } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 

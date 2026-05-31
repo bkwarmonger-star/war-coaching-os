@@ -1,132 +1,118 @@
-import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { Button } from "@/components/Button";
-import { Card, CardHeader, CardBody } from "@/components/Card";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { useState } from "react";
 
 export default function MessagingPage() {
-  const [selectedClient, setSelectedClient] = useState<number | null>(null);
-  const [messageText, setMessageText] = useState("");
+  const { user } = useAuth();
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  const [messageContent, setMessageContent] = useState("");
 
-  const { data: messagesData, refetch } = trpc.messages.getThread.useQuery(
-    { clientId: selectedClient || 1 },
-    { enabled: !!selectedClient }
+  const { data: clientsData } = trpc.clients.list.useQuery({ limit: 100, offset: 0 });
+  const { data: thread } = trpc.messages.getThread.useQuery(
+    { clientId: selectedClientId || 0 },
+    { enabled: !!selectedClientId }
   );
 
-  const sendMutation = trpc.messages.send.useMutation({
-    onSuccess: () => {
-      setMessageText("");
-      refetch();
-    },
-  });
+  const sendMessage = trpc.messages.send.useMutation();
 
-  const handleSend = () => {
-    if (!messageText.trim() || !selectedClient) return;
-    sendMutation.mutate({
-      clientId: selectedClient,
-      content: messageText,
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedClientId || !messageContent.trim()) return;
+
+    await sendMessage.mutateAsync({
+      clientId: selectedClientId,
+      content: messageContent.trim(),
     });
+
+    setMessageContent("");
   };
 
-  return (
-    <div style={{ backgroundColor: "var(--black)", color: "var(--white)" }} className="min-h-screen p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="font-bebas text-4xl mb-8" style={{ color: "var(--gold)", letterSpacing: "0.1em" }}>
-          MESSAGING
-        </h1>
+  const clients = clientsData?.clients || [];
 
-        <div className="grid grid-cols-3 gap-6">
+  return (
+    <div className="min-h-screen bg-black p-8">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-4xl font-bold text-gold mb-8">Client Messaging</h1>
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Client List */}
-          <div>
-            <Card>
-              <CardHeader>
-                <h2 className="font-bebas text-lg" style={{ color: "var(--white)" }}>
-                  Conversations
-                </h2>
-              </CardHeader>
-              <CardBody className="p-0">
-                <div className="space-y-2">
-                  {[1, 2, 3, 4, 5].map((clientId) => (
-                    <button
-                      key={clientId}
-                      onClick={() => setSelectedClient(clientId)}
-                      style={{
-                        backgroundColor: selectedClient === clientId ? "var(--surface3)" : "transparent",
-                        borderLeftColor: selectedClient === clientId ? "var(--gold)" : "transparent",
-                      }}
-                      className="w-full text-left px-4 py-3 border-l-2 hover:bg-surface3 transition-colors"
-                    >
-                      <p className="font-oswald text-sm" style={{ color: "var(--white)" }}>
-                        Client {clientId}
-                      </p>
-                      <p className="font-rajdhani text-xs" style={{ color: "var(--muted)" }}>
-                        Last message today
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              </CardBody>
-            </Card>
+          <div className="lg:col-span-1">
+            <div className="bg-gray-900 rounded-lg p-4 border border-gold/20 h-full">
+              <h2 className="text-lg font-bold text-gold mb-4">Conversations</h2>
+              <div className="space-y-2">
+                {clients.map((c: any) => (
+                  <button
+                    key={c.id}
+                    onClick={() => setSelectedClientId(c.id)}
+                    className={`w-full text-left px-3 py-2 rounded transition ${
+                      selectedClientId === c.id
+                        ? "bg-gold text-black font-semibold"
+                        : "bg-gray-800 text-white hover:bg-gray-700"
+                    }`}
+                  >
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
-          {/* Message Thread */}
-          <div className="col-span-2">
-            {selectedClient ? (
-              <Card className="flex flex-col h-96">
-                <CardHeader>
-                  <h2 className="font-bebas text-lg" style={{ color: "var(--white)" }}>
-                    Client {selectedClient}
+          {/* Chat Area */}
+          <div className="lg:col-span-3">
+            <div className="bg-gray-900 rounded-lg p-6 border border-gold/20 h-full flex flex-col">
+              {selectedClientId ? (
+                <>
+                  <h2 className="text-xl font-bold text-gold mb-4">
+                    {clients.find((c: any) => c.id === selectedClientId)?.name || "Client"}
                   </h2>
-                </CardHeader>
-                <CardBody className="flex-1 overflow-y-auto mb-4">
-                  <div className="space-y-4">
-                    {messagesData && messagesData.length > 0 ? (
-                      messagesData.map((msg: any) => (
-                        <div key={msg.id} className="flex justify-end">
-                          <div
-                            style={{ backgroundColor: "var(--surface3)" }}
-                            className="max-w-xs px-4 py-2 rounded"
-                          >
-                            <p className="font-rajdhani text-sm" style={{ color: "var(--white)" }}>
-                              {msg.content}
-                            </p>
-                          </div>
+
+                  {/* Messages */}
+                  <div className="flex-1 overflow-y-auto mb-4 space-y-3">
+                    {thread && thread.length > 0 ? (
+                      thread.map((msg: any) => (
+                        <div
+                          key={msg.id}
+                          className={`p-3 rounded ${
+                            msg.senderId === user?.id
+                              ? "bg-gold text-black ml-auto max-w-xs"
+                              : "bg-gray-800 text-white mr-auto max-w-xs"
+                          }`}
+                        >
+                          <p>{msg.content}</p>
+                          <p className="text-xs opacity-70 mt-1">
+                            {new Date(msg.createdAt).toLocaleTimeString()}
+                          </p>
                         </div>
                       ))
                     ) : (
-                      <p className="font-rajdhani text-sm text-center" style={{ color: "var(--muted)" }}>
-                        No messages yet
-                      </p>
+                      <p className="text-gray-400 text-center py-8">No messages yet. Start the conversation!</p>
                     )}
                   </div>
-                </CardBody>
-                <div className="flex gap-2 p-4 border-t" style={{ borderColor: "var(--border)" }}>
-                  <input
-                    type="text"
-                    placeholder="Type a message..."
-                    value={messageText}
-                    onChange={(e) => setMessageText(e.target.value)}
-                    onKeyPress={(e) => e.key === "Enter" && handleSend()}
-                    style={{
-                      backgroundColor: "var(--surface2)",
-                      borderColor: "var(--border)",
-                      color: "var(--white)",
-                    }}
-                    className="flex-1 border rounded px-4 py-2 font-rajdhani"
-                  />
-                  <Button variant="primary" onClick={handleSend}>
-                    Send
-                  </Button>
+
+                  {/* Send Form */}
+                  <form onSubmit={handleSend} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={messageContent}
+                      onChange={(e) => setMessageContent(e.target.value)}
+                      placeholder="Type a message..."
+                      className="flex-1 px-4 py-2 bg-gray-800 border border-gold/30 rounded text-white placeholder-gray-500"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!messageContent.trim() || sendMessage.isPending}
+                      className="px-6 py-2 bg-gold text-black font-bold rounded hover:bg-gold/90 disabled:opacity-50"
+                    >
+                      {sendMessage.isPending ? "..." : "Send"}
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-gray-400">Select a client to start messaging</p>
                 </div>
-              </Card>
-            ) : (
-              <Card>
-                <CardBody className="text-center py-12">
-                  <p className="font-rajdhani" style={{ color: "var(--muted)" }}>
-                    Select a client to start messaging
-                  </p>
-                </CardBody>
-              </Card>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>

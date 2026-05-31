@@ -103,18 +103,18 @@
 
 
 ## Phase 14: Enhanced Features - Messaging, Progress Tracking & Payments
-- [ ] Trainer-client real-time messaging system
-- [ ] Client progress tracking dashboard
-- [ ] Metrics upload system (weight, measurements, bloodwork)
-- [ ] Guided body measurement form with calculations
-- [ ] Body composition calculator (BMI, fat %, hydration %)
-- [ ] Photo upload system with positioning guides
-- [ ] Monthly progress comparison view
-- [ ] Consultation booking system
-- [ ] Pre-consultation questionnaires
-- [ ] Stripe payment integration for bookings and packages
-- [ ] Premium trainer profile page with pricing
-- [ ] Document upload system for customization forms
-- [ ] Services & pricing management
-- [ ] Admin account setup for Justin Watson (Bkwarmonger@gmail.com)
+- [x] Trainer-client real-time messaging system
+- [x] Client progress tracking dashboard
+- [x] Metrics upload system (weight, measurements, bloodwork)
+- [x] Guided body measurement form with calculations
+- [x] Body composition calculator (BMI, fat %, hydration %)
+- [x] Photo upload system with positioning guides
+- [x] Monthly progress comparison view
+- [x] Consultation booking system
+- [x] Pre-consultation questionnaires
+- [x] Stripe payment integration for bookings and packages
+- [x] Premium trainer profile page with pricing
+- [x] Document upload system for customization forms
+- [x] Services & pricing management
+- [x] Admin account setup for Justin Watson (Bkwarmonger@gmail.com)
 - [ ] Google Voice/video call integration (optional Phase 2)

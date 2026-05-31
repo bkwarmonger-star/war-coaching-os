@@ -25,8 +25,11 @@ import {
   getLeadById,
   getReferralsByTrainer,
   getDb,
+  getClientProgressMetrics,
+  getTrainerConsultations,
+  createProgressMetric,
 } from "./db";
-import { clients, programs, checkIns, messages, sessions, packages, subscriptions, leads, referrals, trainers } from "../drizzle/schema";
+import { clients, programs, checkIns, messages, sessions, packages, subscriptions, leads, referrals, trainers, progressMetrics, consultations } from "../drizzle/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { InsertClient } from "../drizzle/schema";
 import { invokeLLM } from "./_core/llm";
@@ -609,6 +612,85 @@ Return as JSON with structure: {
 
       return await getReferralsByTrainer(trainer.id);
     }),
+  }),
+
+  // Progress Tracking
+  progress: router({
+    createMetric: protectedProcedure
+      .input(
+        z.object({
+          clientId: z.number(),
+          metricType: z.enum(["weight", "measurement", "bloodwork", "body_composition", "photo"]),
+          value: z.string().optional(),
+          unit: z.string().optional(),
+          notes: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+
+        const trainer = await getTrainerByUserId(ctx.user.id);
+        if (!trainer) throw new Error("Trainer profile not found");
+
+        const result = await db.insert(progressMetrics).values({
+          clientId: input.clientId,
+          trainerId: trainer.id,
+          metricType: input.metricType as any,
+          value: input.value as any,
+          unit: input.unit,
+          notes: input.notes,
+        });
+
+        return { success: true, metricId: (result as any).insertId };
+      }),
+    getClientMetrics: protectedProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const trainer = await getTrainerByUserId(ctx.user.id);
+        if (!trainer) throw new Error("Trainer profile not found");
+
+        return await getClientProgressMetrics(input.clientId, trainer.id);
+      }),
+  }),
+
+  // Consultations
+  consultations: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const trainer = await getTrainerByUserId(ctx.user.id);
+      if (!trainer) throw new Error("Trainer profile not found");
+
+      return await getTrainerConsultations(trainer.id);
+    }),
+    create: protectedProcedure
+      .input(
+        z.object({
+          clientName: z.string(),
+          clientEmail: z.string().email(),
+          clientPhone: z.string().optional(),
+          consultationType: z.string().optional(),
+          amount: z.string(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+
+        const trainer = await getTrainerByUserId(ctx.user.id);
+        if (!trainer) throw new Error("Trainer profile not found");
+
+        const result = await db.insert(consultations).values({
+          trainerId: trainer.id,
+          clientName: input.clientName,
+          clientEmail: input.clientEmail,
+          clientPhone: input.clientPhone,
+          consultationType: input.consultationType,
+          amount: input.amount,
+          status: "pending",
+        });
+
+        return { success: true, consultationId: (result as any).insertId };
+      }),
   }),
 });
 

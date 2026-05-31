@@ -9,6 +9,8 @@ import SchedulingPage from "@/pages/SchedulingPage";
 import RevenuePage from "@/pages/RevenuePage";
 import LeadsPage from "@/pages/LeadsPage";
 import BrandPage from "@/pages/BrandPage";
+import ProgressPage from "@/pages/ProgressPage";
+import ConsultationsPage from "@/pages/ConsultationsPage";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -23,6 +25,8 @@ function Router() {
       <Route path={"/meals"} component={MealsPage} />
       <Route path={"/check-ins"} component={CheckInsPage} />
       <Route path={"/messaging"} component={MessagingPage} />
+      <Route path={"/progress"} component={ProgressPage} />
+      <Route path={"/consultations"} component={ConsultationsPage} />
       <Route path={"/scheduling"} component={SchedulingPage} />
       <Route path={"/revenue"} component={RevenuePage} />
       <Route path={"/leads"} component={LeadsPage} />

@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { Button } from "@/components/Button";
@@ -32,6 +33,27 @@ export default function Dashboard() {
     { month: new Date() },
     { enabled: !!trainerProfile }
   );
+
+  // Show landing page for unauthenticated users
+  if (!user) {
+    return (
+      <div style={{ backgroundColor: "var(--black)", color: "var(--white)" }} className="min-h-screen flex flex-col items-center justify-center p-8">
+        <h1 className="font-bebas text-6xl mb-4" style={{ color: "var(--gold)", letterSpacing: "0.1em" }}>W.A.R. COACHING</h1>
+        <p className="font-oswald text-xl mb-2" style={{ color: "var(--white)" }}>WATSON ATHLETIC READINESS</p>
+        <p className="font-rajdhani text-lg mb-8 max-w-xl text-center" style={{ color: "var(--muted)" }}>
+          Elite personal training by Justin Watson — BKFC professional fighter, ISSA certified trainer.
+          Custom exercise programs, nutrition plans, and 1-on-1 coaching.
+        </p>
+        <a
+          href={getLoginUrl()}
+          style={{ backgroundColor: "var(--gold)", color: "#000" }}
+          className="px-8 py-3 rounded font-oswald text-lg uppercase hover:opacity-80 transition-opacity"
+        >
+          Get Started
+        </a>
+      </div>
+    );
+  }
 
   if (trainerLoading) {
     return (
