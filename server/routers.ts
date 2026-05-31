@@ -691,6 +691,46 @@ Return as JSON with structure: {
 
         return { success: true, consultationId: (result as any).insertId };
       }),
+    createCheckout: protectedProcedure
+      .input(
+        z.object({
+          serviceId: z.number().optional(),
+          packageId: z.number().optional(),
+          description: z.string(),
+          amount: z.number(), // in cents
+          origin: z.string(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const { createCheckoutSession } = await import("./stripe");
+        const session = await createCheckoutSession({
+          serviceId: input.serviceId,
+          packageId: input.packageId,
+          userId: ctx.user.id,
+          userEmail: ctx.user.email || "",
+          userName: ctx.user.name || "",
+          origin: input.origin,
+          description: input.description,
+          amount: input.amount,
+        });
+        return { checkoutUrl: session.url };
+      }),
+  }),
+
+  // Services and packages (public)
+  services: router({
+    list: publicProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      const { services } = await import("../drizzle/schema");
+      return await db.select().from(services).where(eq(services.isActive, true));
+    }),
+    packages: publicProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      const { packages } = await import("../drizzle/schema");
+      return await db.select().from(packages);
+    }),
   }),
 });
 

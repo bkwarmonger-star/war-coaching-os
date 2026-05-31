@@ -33,13 +33,13 @@ export function Navigation() {
             <div className="flex items-center gap-8">
               <div className="flex gap-6 overflow-x-auto">
                 {navItems.map((item) => (
-                  <Link key={item.href} href={item.href}>
-                    <a
-                      style={{ color: "var(--white)" }}
-                      className="font-oswald text-sm uppercase hover:text-gold transition-colors whitespace-nowrap"
-                    >
-                      {item.label}
-                    </a>
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    style={{ color: "var(--white)" }}
+                    className="font-oswald text-sm uppercase hover:text-gold transition-colors whitespace-nowrap"
+                  >
+                    {item.label}
                   </Link>
                 ))}
               </div>
