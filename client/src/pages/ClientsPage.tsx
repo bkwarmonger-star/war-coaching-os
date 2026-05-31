@@ -3,10 +3,12 @@ import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/Button";
 import { Card, CardHeader, CardBody } from "@/components/Card";
+import ProgramAssignmentModal from "@/components/ProgramAssignmentModal";
 
 export default function ClientsPage() {
   const [, setLocation] = useLocation();
   const [showForm, setShowForm] = useState(false);
+  const [selectedClientForAssignment, setSelectedClientForAssignment] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -295,7 +297,7 @@ export default function ClientsPage() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              alert("Program assignment coming soon");
+                              setSelectedClientForAssignment(client.id);
                             }}
                             style={{ backgroundColor: "var(--gold)", color: "#000" }}
                             className="px-3 py-1 rounded font-oswald text-xs uppercase hover:opacity-80 transition-opacity"
@@ -320,6 +322,18 @@ export default function ClientsPage() {
           </CardBody>
         </Card>
       </div>
+
+      {selectedClientForAssignment && (
+        <ProgramAssignmentModal
+          clientId={selectedClientForAssignment}
+          isOpen={true}
+          onClose={() => setSelectedClientForAssignment(null)}
+          onAssignSuccess={() => {
+            setSelectedClientForAssignment(null);
+            refetch();
+          }}
+        />
+      )}
     </div>
   );
 }

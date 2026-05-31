@@ -3,6 +3,7 @@ import { useRoute, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/Button";
 import { Card, CardHeader, CardBody } from "@/components/Card";
+import ProgramAssignmentModal from "@/components/ProgramAssignmentModal";
 
 export default function ClientDetailPage() {
   const [, params] = useRoute("/clients/:id");
@@ -10,6 +11,7 @@ export default function ClientDetailPage() {
   const clientId = params?.id;
 
   const [isEditing, setIsEditing] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -28,10 +30,21 @@ export default function ClientDetailPage() {
     { enabled: !!clientId }
   );
 
+  const { data: assignedPrograms, refetch: refetchPrograms } = trpc.programs.getByClient.useQuery(
+    { clientId: clientId ? parseInt(clientId) : 0 },
+    { enabled: !!clientId }
+  );
+
   const updateMutation = trpc.clients.update.useMutation({
     onSuccess: () => {
       setIsEditing(false);
       refetch();
+    },
+  });
+
+  const unassignMutation = trpc.programs.unassign.useMutation({
+    onSuccess: () => {
+      refetchPrograms();
     },
   });
 
@@ -290,7 +303,56 @@ export default function ClientDetailPage() {
             </CardBody>
           </Card>
         ) : (
-          <div className="grid grid-cols-2 gap-6">
+          <>
+            {/* Assigned Programs Section */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-oswald uppercase text-lg" style={{ color: "var(--white)" }}>
+                  Assigned Programs
+                </h2>
+                <Button variant="primary" size="sm" onClick={() => setShowAssignModal(true)}>
+                  + Assign Program
+                </Button>
+              </div>
+              {assignedPrograms && assignedPrograms.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {assignedPrograms.map((program) => (
+                    <Card key={program.id}>
+                      <CardBody>
+                        <h3 className="font-oswald" style={{ color: "var(--gold)" }}>
+                          {program.name}
+                        </h3>
+                        <p className="font-rajdhani text-sm mt-1" style={{ color: "var(--muted)" }}>
+                          {program.programType} • {program.duration} weeks
+                        </p>
+                        {program.description && (
+                          <p className="font-rajdhani text-xs mt-2" style={{ color: "var(--muted)" }}>
+                            {program.description}
+                          </p>
+                        )}
+                        <button
+                          onClick={() => unassignMutation.mutate({ programId: program.id })}
+                          disabled={unassignMutation.isPending}
+                          className="text-red-400 hover:text-red-300 font-oswald text-xs uppercase mt-3 disabled:opacity-50"
+                        >
+                          {unassignMutation.isPending ? "Removing..." : "Unassign"}
+                        </button>
+                      </CardBody>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardBody className="text-center py-8">
+                    <p style={{ color: "var(--muted)" }} className="font-rajdhani">
+                      No programs assigned yet.
+                    </p>
+                  </CardBody>
+                </Card>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
             <Card>
               <CardHeader>
                 <h2 className="font-oswald uppercase text-sm" style={{ color: "var(--white)" }}>
@@ -375,11 +437,19 @@ export default function ClientDetailPage() {
               </CardBody>
             </Card>
           </div>
+          </>
         )}
 
         <Button variant="secondary" onClick={() => setLocation("/clients")} className="mt-8">
           Back to Clients
         </Button>
+
+        <ProgramAssignmentModal
+          clientId={clientId ? parseInt(clientId) : 0}
+          isOpen={showAssignModal}
+          onClose={() => setShowAssignModal(false)}
+          onAssignSuccess={() => refetchPrograms()}
+        />
       </div>
     </div>
   );

@@ -285,6 +285,48 @@ export const appRouter = router({
         await db.update(programs).set(updateData).where(eq(programs.id, input.programId));
         return { success: true };
       }),
+    assign: protectedProcedure
+      .input(
+        z.object({
+          programId: z.number(),
+          clientId: z.number(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+
+        const trainer = await getTrainerByUserId(ctx.user.id);
+        if (!trainer) throw new Error("Trainer profile not found");
+
+        const program = await getProgramById(input.programId);
+        if (!program || program.trainerId !== trainer.id) throw new Error("Program not found or unauthorized");
+
+        const client = await db.select().from(clients).where(eq(clients.id, input.clientId));
+        if (!client || client.length === 0 || client[0].trainerId !== trainer.id) throw new Error("Client not found or unauthorized");
+
+        await db.update(programs).set({ clientId: input.clientId }).where(eq(programs.id, input.programId));
+        return { success: true, programId: input.programId, clientId: input.clientId };
+      }),
+    unassign: protectedProcedure
+      .input(
+        z.object({
+          programId: z.number(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+
+        const trainer = await getTrainerByUserId(ctx.user.id);
+        if (!trainer) throw new Error("Trainer profile not found");
+
+        const program = await getProgramById(input.programId);
+        if (!program || program.trainerId !== trainer.id) throw new Error("Program not found or unauthorized");
+
+        await db.update(programs).set({ clientId: null }).where(eq(programs.id, input.programId));
+        return { success: true };
+      }),
   }),
 
   // AI Exercise Generator

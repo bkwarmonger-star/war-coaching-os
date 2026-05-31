@@ -166,3 +166,11 @@
 - [x] Add meal plans to programs (meals, macros, recipes)
 - [x] Edit/delete exercises and meals
 - [x] Program templates for quick reuse
+
+
+## Phase 19: Program Assignment Flow
+- [x] Server mutation to assign program to client (programs.assign)
+- [x] Program assignment modal UI (ProgramAssignmentModal component)
+- [x] Display assigned programs on client profile with unassign button
+- [x] Wire Assign quick-action button to modal in ClientsPage
+- [x] Unassign/remove program functionality (programs.unassign)
