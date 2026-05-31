@@ -910,6 +910,30 @@ Return as JSON with structure: {
       if (client.length === 0) return [];
       return await db.select().from(sessions).where(and(eq(sessions.clientId, client[0].id), gte(sessions.startTime, new Date()))).orderBy(sessions.startTime);
     }),
+    // Upload progress photo from client portal
+    uploadPhoto: protectedProcedure
+      .input(z.object({
+        pose: z.enum(["front", "back", "left_side", "right_side"]),
+        photoData: z.string(), // base64 encoded image data
+        mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]).default("image/jpeg"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        // Validate base64 data
+        const buffer = Buffer.from(input.photoData, "base64");
+        if (buffer.length === 0) throw new Error("Invalid photo data");
+        // Enforce 10MB limit server-side
+        if (buffer.length > 10 * 1024 * 1024) throw new Error("Photo exceeds 10MB size limit");
+        const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).limit(1);
+        if (client.length === 0) throw new Error("Client profile not found. Contact your trainer.");
+        const { storagePut } = await import("./storage");
+        const timestamp = Date.now();
+        const ext = input.mimeType === "image/png" ? "png" : input.mimeType === "image/webp" ? "webp" : "jpg";
+        const fileKey = `check-in-photos/${client[0].id}/${input.pose}_${timestamp}.${ext}`;
+        const { url } = await storagePut(fileKey, buffer, input.mimeType);
+        return { success: true, url, pose: input.pose };
+      }),
   }),
 });
 

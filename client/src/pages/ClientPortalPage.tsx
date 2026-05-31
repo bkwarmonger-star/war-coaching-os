@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
@@ -507,12 +507,29 @@ function MealPlanContent({ content }: { content: string }) {
 
 // ─── CHECK-INS TAB ──────────────────────────────────────────────────────────────
 
+type PoseType = "front" | "back" | "left_side" | "right_side";
+type PhotoUpload = { pose: PoseType; preview: string; file: File };
+
+const POSE_CONFIG: { id: PoseType; label: string; description: string; icon: string }[] = [
+  { id: "front", label: "Front", description: "Face the camera, arms relaxed at sides", icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197" },
+  { id: "back", label: "Back", description: "Face away from camera, arms relaxed", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" },
+  { id: "left_side", label: "Left Side", description: "Turn left side toward camera", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
+  { id: "right_side", label: "Right Side", description: "Turn right side toward camera", icon: "M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
+];
+
 function PortalCheckIns() {
   const { data: checkIns, isLoading, refetch } = trpc.portal.getMyCheckIns.useQuery();
   const [showForm, setShowForm] = useState(false);
   const [weight, setWeight] = useState("");
   const [energyLevel, setEnergyLevel] = useState(7);
   const [notes, setNotes] = useState("");
+  const [photos, setPhotos] = useState<PhotoUpload[]>([]);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [activePose, setActivePose] = useState<PoseType | null>(null);
+
+  const uploadPhotoMutation = trpc.portal.uploadPhoto.useMutation();
 
   const submitMutation = trpc.portal.submitCheckIn.useMutation({
     onSuccess: () => {
@@ -520,16 +537,93 @@ function PortalCheckIns() {
       setWeight("");
       setEnergyLevel(7);
       setNotes("");
+      setPhotos([]);
+      setUploadingPhotos(false);
+      setUploadProgress("");
       refetch();
+    },
+    onError: (error) => {
+      setUploadingPhotos(false);
+      setUploadProgress("");
+      console.error("Check-in submission failed:", error);
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activePose) return;
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert("Photo must be under 10MB");
+      return;
+    }
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const preview = reader.result as string;
+      setPhotos((prev) => {
+        // Replace if same pose already uploaded
+        const filtered = prev.filter((p) => p.pose !== activePose);
+        return [...filtered, { pose: activePose, preview, file }];
+      });
+      setActivePose(null);
+    };
+    reader.readAsDataURL(file);
+    // Reset input so same file can be re-selected
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, [activePose]);
+
+  const removePhoto = (pose: PoseType) => {
+    setPhotos((prev) => prev.filter((p) => p.pose !== pose));
+  };
+
+  const triggerFileInput = (pose: PoseType) => {
+    setActivePose(pose);
+    setTimeout(() => fileInputRef.current?.click(), 50);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    let photoUrls: string[] = [];
+
+    // Upload photos first if any
+    if (photos.length > 0) {
+      setUploadingPhotos(true);
+      try {
+        for (let i = 0; i < photos.length; i++) {
+          const photo = photos[i];
+          setUploadProgress(`Uploading ${photo.pose} photo (${i + 1}/${photos.length})...`);
+          // Convert file to base64 (strip data URL prefix)
+          const base64 = photo.preview.split(",")[1];
+          // Validate and map mimeType to allowed values
+          let mimeType: "image/jpeg" | "image/png" | "image/webp" = "image/jpeg";
+          if (photo.file.type === "image/png") mimeType = "image/png";
+          else if (photo.file.type === "image/webp") mimeType = "image/webp";
+          const result = await uploadPhotoMutation.mutateAsync({
+            pose: photo.pose,
+            photoData: base64,
+            mimeType,
+          });
+          photoUrls.push(result.url);
+        }
+        setUploadProgress("Photos uploaded! Submitting check-in...");
+      } catch (err) {
+        setUploadingPhotos(false);
+        setUploadProgress("");
+        alert("Failed to upload photos. Please try again.");
+        return;
+      }
+    }
+
     submitMutation.mutate({
       weight: weight || undefined,
       energyLevel,
       notes: notes || undefined,
+      photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
     });
   };
 
@@ -543,6 +637,16 @@ function PortalCheckIns() {
           {showForm ? "Cancel" : "New Check-In"}
         </Button>
       </div>
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleFileSelect}
+      />
 
       {/* Check-In Form */}
       {showForm && (
@@ -584,6 +688,69 @@ function PortalCheckIns() {
                 </div>
               </div>
 
+              {/* Progress Photos Section */}
+              <div>
+                <label className="block font-oswald text-sm uppercase mb-3" style={{ color: "var(--muted)" }}>
+                  Progress Photos <span className="font-rajdhani normal-case text-xs">(optional — front, back, side)</span>
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {POSE_CONFIG.map((pose) => {
+                    const uploaded = photos.find((p) => p.pose === pose.id);
+                    return (
+                      <div key={pose.id} className="relative">
+                        {uploaded ? (
+                          <div className="relative group">
+                            <div
+                              className="aspect-[3/4] rounded-lg overflow-hidden border-2"
+                              style={{ borderColor: "var(--gold)" }}
+                            >
+                              <img
+                                src={uploaded.preview}
+                                alt={`${pose.label} pose`}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div className="absolute top-1 right-1">
+                              <button
+                                type="button"
+                                onClick={() => removePhoto(pose.id)}
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-xs transition-all hover:scale-110"
+                                style={{ backgroundColor: "rgba(220, 38, 38, 0.9)", color: "#fff" }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                            <p className="font-oswald text-xs uppercase text-center mt-1" style={{ color: "var(--gold)" }}>
+                              {pose.label} ✓
+                            </p>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => triggerFileInput(pose.id)}
+                            className="w-full aspect-[3/4] rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all hover:border-solid"
+                            style={{ borderColor: "var(--border)", backgroundColor: "var(--surface2)" }}
+                          >
+                            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: "var(--muted)" }}>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={pose.icon} />
+                            </svg>
+                            <span className="font-oswald text-xs uppercase" style={{ color: "var(--muted)" }}>{pose.label}</span>
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: "var(--gold-dim)" }}>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                {photos.length > 0 && (
+                  <p className="font-rajdhani text-xs mt-2" style={{ color: "var(--gold)" }}>
+                    {photos.length} photo{photos.length > 1 ? "s" : ""} ready to upload
+                  </p>
+                )}
+              </div>
+
               <div>
                 <label className="block font-oswald text-sm uppercase mb-2" style={{ color: "var(--muted)" }}>Notes / How are you feeling?</label>
                 <textarea
@@ -596,8 +763,15 @@ function PortalCheckIns() {
                 />
               </div>
 
-              <Button type="submit" size="lg" className="w-full" disabled={submitMutation.isPending}>
-                {submitMutation.isPending ? "Submitting..." : "Submit Check-In"}
+              {uploadProgress && (
+                <div className="flex items-center gap-3 p-3 rounded" style={{ backgroundColor: "var(--surface2)", border: "1px solid var(--border-gold)" }}>
+                  <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: "var(--gold)", borderTopColor: "transparent" }} />
+                  <p className="font-rajdhani text-sm" style={{ color: "var(--gold)" }}>{uploadProgress}</p>
+                </div>
+              )}
+
+              <Button type="submit" size="lg" className="w-full" disabled={submitMutation.isPending || uploadingPhotos}>
+                {uploadingPhotos ? "Uploading Photos..." : submitMutation.isPending ? "Submitting..." : photos.length > 0 ? `Submit Check-In with ${photos.length} Photo${photos.length > 1 ? "s" : ""}` : "Submit Check-In"}
               </Button>
             </form>
           </CardBody>
@@ -607,41 +781,60 @@ function PortalCheckIns() {
       {/* Check-In History */}
       {checkIns && checkIns.length > 0 ? (
         <div className="space-y-3">
-          {checkIns.map((ci: any) => (
-            <Card key={ci.id}>
-              <CardBody>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-rajdhani text-sm" style={{ color: "var(--muted)" }}>
-                      {new Date(ci.createdAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
-                    </p>
-                    <div className="flex items-center gap-4 mt-2">
-                      {ci.weight && <span className="font-rajdhani font-semibold" style={{ color: "var(--white)" }}>{ci.weight} lbs</span>}
-                      {ci.energyLevel && (
-                        <span className="font-rajdhani text-sm" style={{ color: "var(--muted)" }}>
-                          Energy: {ci.energyLevel}/10
-                        </span>
-                      )}
+          {checkIns.map((ci: any) => {
+            let parsedPhotos: string[] = [];
+            try {
+              parsedPhotos = ci.photoUrls ? JSON.parse(ci.photoUrls) : [];
+            } catch { parsedPhotos = []; }
+            return (
+              <Card key={ci.id}>
+                <CardBody>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-rajdhani text-sm" style={{ color: "var(--muted)" }}>
+                        {new Date(ci.createdAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
+                      </p>
+                      <div className="flex items-center gap-4 mt-2">
+                        {ci.weight && <span className="font-rajdhani font-semibold" style={{ color: "var(--white)" }}>{ci.weight} lbs</span>}
+                        {ci.energyLevel && (
+                          <span className="font-rajdhani text-sm" style={{ color: "var(--muted)" }}>
+                            Energy: {ci.energyLevel}/10
+                          </span>
+                        )}
+                      </div>
+                      {ci.notes && <p className="font-rajdhani text-sm mt-2" style={{ color: "var(--muted)" }}>{ci.notes}</p>}
                     </div>
-                    {ci.notes && <p className="font-rajdhani text-sm mt-2" style={{ color: "var(--muted)" }}>{ci.notes}</p>}
+                    <span className="px-3 py-1 rounded text-xs font-oswald uppercase" style={{
+                      backgroundColor: ci.status === "responded" ? "rgba(45, 179, 109, 0.15)" : ci.status === "reviewed" ? "rgba(201, 168, 76, 0.15)" : "var(--surface2)",
+                      color: ci.status === "responded" ? "var(--success)" : ci.status === "reviewed" ? "var(--gold)" : "var(--muted)",
+                      border: `1px solid ${ci.status === "responded" ? "rgba(45, 179, 109, 0.3)" : ci.status === "reviewed" ? "var(--border-gold)" : "var(--border)"}`,
+                    }}>
+                      {ci.status}
+                    </span>
                   </div>
-                  <span className="px-3 py-1 rounded text-xs font-oswald uppercase" style={{
-                    backgroundColor: ci.status === "responded" ? "rgba(45, 179, 109, 0.15)" : ci.status === "reviewed" ? "rgba(201, 168, 76, 0.15)" : "var(--surface2)",
-                    color: ci.status === "responded" ? "var(--success)" : ci.status === "reviewed" ? "var(--gold)" : "var(--muted)",
-                    border: `1px solid ${ci.status === "responded" ? "rgba(45, 179, 109, 0.3)" : ci.status === "reviewed" ? "var(--border-gold)" : "var(--border)"}`,
-                  }}>
-                    {ci.status}
-                  </span>
-                </div>
-                {ci.trainerFeedback && (
-                  <div className="mt-4 p-3 rounded" style={{ backgroundColor: "var(--surface2)", borderLeft: "3px solid var(--gold)" }}>
-                    <p className="font-oswald text-xs uppercase mb-1" style={{ color: "var(--gold)" }}>Trainer Feedback</p>
-                    <p className="font-rajdhani text-sm" style={{ color: "var(--white)" }}>{ci.trainerFeedback}</p>
-                  </div>
-                )}
-              </CardBody>
-            </Card>
-          ))}
+                  {/* Display photos if any */}
+                  {parsedPhotos.length > 0 && (
+                    <div className="mt-4">
+                      <p className="font-oswald text-xs uppercase mb-2" style={{ color: "var(--gold)" }}>Progress Photos</p>
+                      <div className="grid grid-cols-4 gap-2">
+                        {parsedPhotos.map((url: string, idx: number) => (
+                          <div key={idx} className="aspect-[3/4] rounded overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+                            <img src={url} alt={`Progress photo ${idx + 1}`} className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {ci.trainerFeedback && (
+                    <div className="mt-4 p-3 rounded" style={{ backgroundColor: "var(--surface2)", borderLeft: "3px solid var(--gold)" }}>
+                      <p className="font-oswald text-xs uppercase mb-1" style={{ color: "var(--gold)" }}>Trainer Feedback</p>
+                      <p className="font-rajdhani text-sm" style={{ color: "var(--white)" }}>{ci.trainerFeedback}</p>
+                    </div>
+                  )}
+                </CardBody>
+              </Card>
+            );
+          })}
         </div>
       ) : (
         <EmptyState

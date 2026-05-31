@@ -161,4 +161,42 @@ describe("portal router", () => {
       expect(result).toEqual([]);
     });
   });
+
+  describe("portal.uploadPhoto", () => {
+    it("throws error when no client profile exists", async () => {
+      const ctx = createClientContext("nonexistent@example.com");
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.portal.uploadPhoto({
+          pose: "front",
+          photoData: "dGVzdA==", // base64 of "test"
+          mimeType: "image/jpeg",
+        })
+      ).rejects.toThrow("Client profile not found");
+    });
+
+    it("throws UNAUTHORIZED for unauthenticated users", async () => {
+      const ctx = createUnauthContext();
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.portal.uploadPhoto({
+          pose: "back",
+          photoData: "dGVzdA==",
+          mimeType: "image/jpeg",
+        })
+      ).rejects.toThrow();
+    });
+
+    it("validates pose enum values", async () => {
+      const ctx = createClientContext("nonexistent@example.com");
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.portal.uploadPhoto({
+          pose: "invalid_pose" as any,
+          photoData: "dGVzdA==",
+          mimeType: "image/jpeg",
+        })
+      ).rejects.toThrow();
+    });
+  });
 });

@@ -140,3 +140,11 @@
 - [x] Message trainer directly from portal
 - [x] Client-specific navigation (separate from trainer nav)
 - [x] Unit tests for all portal router procedures (13 tests passing)
+
+## Phase 17: Progress Photo Upload in Check-Ins
+- [x] Server endpoint for photo upload to S3 storage
+- [x] Photo upload UI with front/back/side pose selectors
+- [x] Preview thumbnails before submission
+- [x] Attach photo URLs to check-in submission
+- [x] Display uploaded photos in check-in history
+- [x] Unit tests for photo upload procedure (16 tests passing)
