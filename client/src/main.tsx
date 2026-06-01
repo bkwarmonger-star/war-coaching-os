@@ -7,6 +7,7 @@ import superjson from "superjson";
 import App from "./App";
 import { getLoginUrl } from "./const";
 import "./index.css";
+import { initSentryClient } from "./_core/sentry";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,8 @@ queryClient.getMutationCache().subscribe(event => {
     console.error("[API Mutation Error]", error);
   }
 });
+
+initSentryClient();
 
 const trpcClient = trpc.createClient({
   links: [

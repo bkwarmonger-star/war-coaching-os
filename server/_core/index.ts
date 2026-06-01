@@ -7,7 +7,11 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
+import { initSentryServer } from "./sentry";
+import * as Sentry from "@sentry/node";
 import { serveStatic, setupVite } from "./vite";
+import { getDb } from "../db";
+import { ENV } from "./env";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -31,6 +35,24 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+  // Initialize Sentry (if configured)
+  try {
+    initSentryServer();
+    if ((Sentry as any).getCurrentHub && (Sentry as any).getCurrentHub().getClient()) {
+      app.use((Sentry as any).Handlers.requestHandler());
+    }
+  } catch (err) {
+    console.warn("Sentry init failed:", err);
+  }
+  // In production ensure required environment variables are present
+  if (process.env.NODE_ENV === "production") {
+    const missing: string[] = [];
+    if (!ENV.forgeApiKey) missing.push("FORGE_API_KEY");
+    if (!process.env.DATABASE_URL) missing.push("DATABASE_URL");
+    if (missing.length > 0) {
+      throw new Error(`Missing required environment variables for production: ${missing.join(", ")}`);
+    }
+  }
   // Register Stripe webhook BEFORE body parsers (needs raw body)
   const { registerStripeRoutes } = await import("../stripe");
   registerStripeRoutes(app);
@@ -41,6 +63,40 @@ async function startServer() {
   registerOAuthRoutes(app);
   
   // Generator endpoints
+  // Health endpoint for readiness checks (returns DB availability)
+  app.get("/health", async (_req, res) => {
+    try {
+      const db = await getDb();
+      const dbAvailable = !!db;
+
+      // Storage health: try presign if forge config present
+      const storageConfigured = !!(ENV.forgeApiUrl && ENV.forgeApiKey);
+      let storageOk = false;
+      if (storageConfigured) {
+        try {
+          const presignUrl = new URL("v1/storage/presign/put", ENV.forgeApiUrl.replace(/\/+$/, "") + "/");
+          presignUrl.searchParams.set("path", `health-check-${Date.now()}.txt`);
+          const presignResp = await fetch(presignUrl.toString(), {
+            headers: { Authorization: `Bearer ${ENV.forgeApiKey}` },
+            method: "GET",
+          });
+          storageOk = presignResp.ok;
+        } catch (err) {
+          console.error("Storage health check failed:", err);
+          storageOk = false;
+        }
+      }
+
+      // LLM configured flag
+      const llmConfigured = !!ENV.forgeApiKey;
+
+      res.json({ ok: true, db: dbAvailable, storage: storageConfigured ? storageOk : "not_configured", llm: llmConfigured });
+    } catch (err) {
+      console.error("Health check failed:", err);
+      res.status(500).json({ ok: false });
+    }
+  });
+
   app.post("/api/generate-exercises", async (req, res) => {
     try {
       const { prompt } = req.body;
@@ -75,6 +131,15 @@ async function startServer() {
       createContext,
     })
   );
+
+  // Sentry error handler (should be after all routes)
+  try {
+    if ((Sentry as any).getCurrentHub && (Sentry as any).getCurrentHub().getClient()) {
+      app.use((Sentry as any).Handlers.errorHandler());
+    }
+  } catch (err) {
+    console.warn("Sentry error handler setup failed:", err);
+  }
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
