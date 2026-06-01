@@ -14,6 +14,12 @@ jobs:
       matrix:
         node-version: [18.x]
 
+    env:
+      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+      VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+      SENTRY_RELEASE: ${{ github.sha }}
+      VITE_COMMIT_SHA: ${{ github.sha }}
+
     steps:
       - uses: actions/checkout@v4
       - name: Use Node.js
