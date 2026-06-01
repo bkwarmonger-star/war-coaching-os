@@ -39,6 +39,34 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+  
+  // Generator endpoints
+  app.post("/api/generate-exercises", async (req, res) => {
+    try {
+      const { prompt } = req.body;
+      if (!prompt) return res.status(400).json({ error: "Prompt required" });
+      const { generateExercises } = await import("../generators");
+      const result = await generateExercises(prompt);
+      res.json(result);
+    } catch (error) {
+      console.error("Exercise generation error:", error);
+      res.status(500).json({ error: "Failed to generate exercises" });
+    }
+  });
+  
+  app.post("/api/generate-nutrition", async (req, res) => {
+    try {
+      const { prompt } = req.body;
+      if (!prompt) return res.status(400).json({ error: "Prompt required" });
+      const { generateNutrition } = await import("../generators");
+      const result = await generateNutrition(prompt);
+      res.json(result);
+    } catch (error) {
+      console.error("Nutrition generation error:", error);
+      res.status(500).json({ error: "Failed to generate nutrition" });
+    }
+  });
+  
   // tRPC API
   app.use(
     "/api/trpc",

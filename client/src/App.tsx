@@ -17,6 +17,7 @@ import ClientPortalPage from "@/pages/ClientPortalPage";
 import ClientDetailPage from "@/pages/ClientDetailPage";
 import ProgramDetailPage from "@/pages/ProgramDetailPage";
 import PublicClientProfilePage from "@/pages/PublicClientProfilePage";
+import ClientDashboard from "@/pages/ClientDashboard";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -43,6 +44,7 @@ function Router() {
       <Route path={"/video"} component={VideoCallPage} />
       <Route path={"/photos"} component={PhotoProgressPage} />
       <Route path={"/portal"} component={ClientPortalPage} />
+      <Route path={"/client-dashboard"} component={ClientDashboard} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

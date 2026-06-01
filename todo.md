@@ -182,3 +182,11 @@
 - [x] Share Profile button on ClientDetailPage
 - [x] Copy-to-clipboard functionality for profile link
 - [x] Route registered at /public-profile/:clientId
+
+
+## Phase 21: Critical MVP - Client Dashboard & Generators
+- [ ] Client dashboard (authenticated view with current program, meals, check-ins, progress)
+- [ ] Exercise generator using LLM (AI-powered exercise creation with sets/reps/rest)
+- [ ] Nutrition generator using LLM (AI-powered meal plan creation with macros)
+- [ ] Wire generators to program creation flow
+- [ ] Test end-to-end with real client onboarding
