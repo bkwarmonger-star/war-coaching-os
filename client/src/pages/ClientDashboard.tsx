@@ -106,14 +106,18 @@ export default function ClientDashboard() {
                   </p>
                   {programs[0].content && (
                     <div className="space-y-2 mb-6">
-                      {JSON.parse(typeof programs[0].content === "string" ? programs[0].content : "[]")
-                        .slice(0, 3)
-                        .map((exercise: any, idx: number) => (
+                      {(() => {
+                        try {
+                          const parsed = JSON.parse(typeof programs[0].content === "string" ? programs[0].content : "{}");
+                          const exercises = parsed.exercises || [];
+                          return exercises.slice(0, 3).map((exercise: any, idx: number) => (
                           <div key={idx} className="flex justify-between font-rajdhani text-sm">
                             <span>{exercise.name}</span>
                             <span style={{ color: "var(--gold)" }}>{exercise.sets}x{exercise.reps}</span>
                           </div>
-                        ))}
+                        ));
+                        } catch { return null; }
+                      })()}
                     </div>
                   )}
                   <button
@@ -187,20 +191,24 @@ export default function ClientDashboard() {
             <CardBody>
               {programs && programs.length > 0 && programs[0].content ? (
                 <>
-                  <div className="space-y-3 mb-6">
-                    {JSON.parse(typeof programs[0].content === "string" ? programs[0].content : "[]")
-                      .slice(0, 3)
-                      .map((meal: any, idx: number) => (
-                        <div key={idx} className="p-3 rounded" style={{ backgroundColor: "var(--surface)" }}>
-                          <p className="font-oswald text-xs uppercase" style={{ color: "var(--gold)" }}>
-                            {meal.timing || ["Breakfast", "Lunch", "Dinner"][idx]}
-                          </p>
-                          <p className="font-rajdhani text-xs mt-1" style={{ color: "var(--muted)" }}>
-                            {meal.description || "Custom meal"}
-                          </p>
-                        </div>
-                      ))}
-                  </div>
+                    <div className="space-y-3 mb-6">
+                    {(() => {
+                      try {
+                        const parsed = JSON.parse(typeof programs[0].content === "string" ? programs[0].content : "{}");
+                        const meals = parsed.meals || [];
+                        return meals.slice(0, 3).map((meal: any, idx: number) => (
+                          <div key={idx} className="p-3 rounded" style={{ backgroundColor: "var(--surface)" }}>
+                            <p className="font-oswald text-xs uppercase" style={{ color: "var(--gold)" }}>
+                              {meal.timing || ["Breakfast", "Lunch", "Dinner"][idx]}
+                            </p>
+                            <p className="font-rajdhani text-xs mt-1" style={{ color: "var(--muted)" }}>
+                              {meal.description || "Custom meal"}
+                            </p>
+                          </div>
+                        ));
+                      } catch { return null; }
+                    })()}
+                    </div>
                   <button
                     className="w-full py-2 rounded font-oswald text-sm uppercase"
                     style={{ backgroundColor: "var(--gold)", color: "#000" }}
