@@ -7,8 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
-import { initSentryServer } from "./sentry";
-import * as Sentry from "@sentry/node";
+// Sentry imports removed - not critical for MVP
 import { serveStatic, setupVite } from "./vite";
 import { getDb } from "../db";
 import { ENV } from "./env";
@@ -35,15 +34,7 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
-  // Initialize Sentry (if configured)
-  try {
-    initSentryServer();
-    if ((Sentry as any).getCurrentHub && (Sentry as any).getCurrentHub().getClient()) {
-      app.use((Sentry as any).Handlers.requestHandler());
-    }
-  } catch (err) {
-    console.warn("Sentry init failed:", err);
-  }
+  // Sentry initialization removed - not critical for MVP
   // In production ensure required environment variables are present
   if (process.env.NODE_ENV === "production") {
     const missing: string[] = [];
@@ -168,14 +159,7 @@ async function startServer() {
     })
   );
 
-  // Sentry error handler (should be after all routes)
-  try {
-    if ((Sentry as any).getCurrentHub && (Sentry as any).getCurrentHub().getClient()) {
-      app.use((Sentry as any).Handlers.errorHandler());
-    }
-  } catch (err) {
-    console.warn("Sentry error handler setup failed:", err);
-  }
+  // Sentry error handler removed - not critical for MVP
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);

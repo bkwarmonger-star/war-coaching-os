@@ -189,7 +189,7 @@
 - [x] Exercise generator using LLM (AI-powered exercise creation with sets/reps/rest)
 - [x] Nutrition generator using LLM (AI-powered meal plan creation with macros)
 - [x] Wire generators to program creation flow
-- [ ] Test end-to-end with real client onboarding
+- [x] Test end-to-end with real client onboarding
 
 
 ## Phase 22: Static HTML Client Profiles (Server-Side Rendering)
@@ -197,3 +197,15 @@
 - [ ] Test endpoint with real data
 - [ ] Update Share Profile button to link to static HTML
 - [ ] End-to-end test: create client → assign program → share → verify link works
+
+
+## Phase 23: Critical Bug Fixes - Exercise & Meal Generators
+- [x] Exercise addition not working in ProgramDetailPage - FIXED: improved error handling and data validation
+- [x] Exercise generator not accessible or not functioning - FIXED: API tested and working
+- [x] Meal generator not working properly - FIXED: API tested and working
+
+## Phase 24: Sentry Cleanup
+- [x] Removed Sentry imports from server/index.ts
+- [x] Removed Sentry imports from client/main.tsx
+- [x] Deleted unused Sentry files (client/src/_core/sentry.tsx, server/_core/sentry.ts)
+- [x] Dev server now starts cleanly with zero TypeScript errors

@@ -27,14 +27,21 @@ export function NutritionGenerator({ onMealsGenerated, isLoading }: NutritionGen
         body: JSON.stringify({ prompt }),
       });
       
-      if (!response.ok) throw new Error("Failed to generate meals");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to generate meals");
+      }
       
       const data = await response.json();
+      if (!data.meals || !Array.isArray(data.meals)) {
+        throw new Error("Invalid response format");
+      }
+      
       onMealsGenerated(data.meals);
       setPrompt("");
     } catch (error) {
       console.error("Error generating meals:", error);
-      alert("Failed to generate meal plan. Try again.");
+      alert(`Failed to generate meal plan: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
       setGenerating(false);
     }
@@ -63,11 +70,11 @@ export function NutritionGenerator({ onMealsGenerated, isLoading }: NutritionGen
         <button
           onClick={generateMeals}
           disabled={generating || isLoading || !prompt.trim()}
-          className="w-full py-2 rounded font-oswald text-sm uppercase"
+          className="w-full py-2 rounded font-oswald text-sm uppercase cursor-pointer hover:opacity-90 transition-opacity"
           style={{
-            backgroundColor: generating || isLoading ? "var(--surface)" : "var(--gold)",
-            color: generating || isLoading ? "var(--muted)" : "#000",
-            opacity: generating || isLoading ? 0.5 : 1,
+            backgroundColor: generating || isLoading || !prompt.trim() ? "var(--surface)" : "var(--gold)",
+            color: generating || isLoading || !prompt.trim() ? "var(--muted)" : "#000",
+            opacity: generating || isLoading || !prompt.trim() ? 0.5 : 1,
           }}
         >
           {generating ? "Generating..." : "Generate Meal Plan"}

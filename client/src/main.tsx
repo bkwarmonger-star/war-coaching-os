@@ -7,8 +7,6 @@ import superjson from "superjson";
 import App from "./App";
 import { getLoginUrl } from "./const";
 import "./index.css";
-import { initSentryClient } from "./_core/sentry";
-
 const queryClient = new QueryClient();
 
 const redirectToLoginIfUnauthorized = (error: unknown) => {
@@ -38,7 +36,7 @@ queryClient.getMutationCache().subscribe(event => {
   }
 });
 
-initSentryClient();
+// Sentry initialization removed - not critical for MVP
 
 const analyticsEndpoint = (import.meta as any).env?.VITE_ANALYTICS_ENDPOINT;
 const analyticsWebsiteId = (import.meta as any).env?.VITE_ANALYTICS_WEBSITE_ID;
