@@ -141,13 +141,13 @@ export default function MealsPage() {
           <Card>
             <CardBody className="text-center py-12">
               <p className="font-rajdhani text-red-400">
-                Error generating meal plan. Please try again.
+                Error: {generateMutation.error?.message || "Failed to generate meal plan. Please try again."}
               </p>
             </CardBody>
           </Card>
         )}
 
-        {generateMutation.data && typeof generateMutation.data === "object" && "mealPlan" in generateMutation.data && (
+        {generateMutation.data && typeof generateMutation.data === "object" && "mealPlan" in generateMutation.data && typeof generateMutation.data.mealPlan === "string" && (
           <Card>
             <CardBody>
               <h3 className="font-bebas text-lg mb-4" style={{ color: "var(--gold)" }}>
@@ -160,7 +160,7 @@ export default function MealsPage() {
           </Card>
         )}
 
-        {!generateMutation.data && !showForm && !generateMutation.isError && (
+        {!generateMutation.data && !showForm && !generateMutation.isError && !generateMutation.isPending && (
           <Card>
             <CardBody className="text-center py-12">
               <p className="font-rajdhani" style={{ color: "var(--muted)" }}>

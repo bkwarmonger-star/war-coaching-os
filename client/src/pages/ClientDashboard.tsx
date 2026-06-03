@@ -116,7 +116,7 @@ export default function ClientDashboard() {
                             <span style={{ color: "var(--gold)" }}>{exercise.sets}x{exercise.reps}</span>
                           </div>
                         ));
-                        } catch { return null; }
+                        } catch (e) { return null; }
                       })()}
                     </div>
                   )}
@@ -206,7 +206,7 @@ export default function ClientDashboard() {
                             </p>
                           </div>
                         ));
-                      } catch { return null; }
+                      } catch (e) { return null; }
                     })()}
                     </div>
                   <button

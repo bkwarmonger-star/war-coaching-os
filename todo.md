@@ -190,3 +190,10 @@
 - [x] Nutrition generator using LLM (AI-powered meal plan creation with macros)
 - [x] Wire generators to program creation flow
 - [ ] Test end-to-end with real client onboarding
+
+
+## Phase 22: Static HTML Client Profiles (Server-Side Rendering)
+- [ ] Server endpoint that generates static HTML for client profiles
+- [ ] Test endpoint with real data
+- [ ] Update Share Profile button to link to static HTML
+- [ ] End-to-end test: create client → assign program → share → verify link works
