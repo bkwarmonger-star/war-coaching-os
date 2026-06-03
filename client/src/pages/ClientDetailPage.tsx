@@ -132,7 +132,7 @@ export default function ClientDetailPage() {
                 </Button>
                 <Button
                   onClick={() => {
-                    const url = `${window.location.origin}/public-profile/${clientId}`;
+                    const url = `${window.location.origin}/client-profile/${clientId}`;
                     navigator.clipboard.writeText(url);
                     alert("Profile link copied to clipboard!");
                   }}

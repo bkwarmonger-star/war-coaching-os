@@ -193,10 +193,10 @@
 
 
 ## Phase 22: Static HTML Client Profiles (Server-Side Rendering)
-- [ ] Server endpoint that generates static HTML for client profiles
-- [ ] Test endpoint with real data
-- [ ] Update Share Profile button to link to static HTML
-- [ ] End-to-end test: create client → assign program → share → verify link works
+- [x] Server endpoint that generates static HTML for client profiles - IMPLEMENTED at /client-profile/:clientId
+- [x] Test endpoint with real data - VERIFIED: returns properly formatted profile for John Doe with stats
+- [x] Update Share Profile button to link to static HTML - UPDATED: ClientDetailPage now links to /client-profile/:clientId
+- [x] End-to-end test: create client → assign program → share → verify link works - VERIFIED: static profile displays correctly with dark theme styling
 
 
 ## Phase 23: Critical Bug Fixes - Exercise & Meal Generators
