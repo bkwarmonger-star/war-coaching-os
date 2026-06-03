@@ -10,6 +10,7 @@ RUN npm install -g pnpm@10.4.1
 
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
+COPY patches ./patches
 
 # Install all dependencies (including dev dependencies for build)
 RUN pnpm install --frozen-lockfile
@@ -30,6 +31,7 @@ RUN npm install -g pnpm@10.4.1
 
 # Copy package files from builder
 COPY package.json pnpm-lock.yaml ./
+COPY patches ./patches
 
 # Copy built artifacts from builder
 COPY --from=builder /app/dist ./dist
