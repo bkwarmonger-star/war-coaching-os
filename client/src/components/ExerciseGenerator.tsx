@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { trpc } from "@/lib/trpc";
 import { Card, CardHeader, CardBody } from "@/components/Card";
 
 interface Exercise {

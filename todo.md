@@ -188,5 +188,5 @@
 - [x] Client dashboard (authenticated view with current program, meals, check-ins, progress)
 - [x] Exercise generator using LLM (AI-powered exercise creation with sets/reps/rest)
 - [x] Nutrition generator using LLM (AI-powered meal plan creation with macros)
-- [ ] Wire generators to program creation flow
+- [x] Wire generators to program creation flow
 - [ ] Test end-to-end with real client onboarding

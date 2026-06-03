@@ -3,6 +3,8 @@ import { useRoute, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/Button";
 import { Card, CardHeader, CardBody } from "@/components/Card";
+import { ExerciseGenerator } from "@/components/ExerciseGenerator";
+import { NutritionGenerator } from "@/components/NutritionGenerator";
 
 interface Exercise {
   id?: string;
@@ -35,6 +37,8 @@ export default function ProgramDetailPage() {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [showAddMeal, setShowAddMeal] = useState(false);
+  const [showExerciseGenerator, setShowExerciseGenerator] = useState(false);
+  const [showNutritionGenerator, setShowNutritionGenerator] = useState(false);
   const [editingExerciseId, setEditingExerciseId] = useState<string | undefined>(undefined);
   const [editingMealId, setEditingMealId] = useState<string | undefined>(undefined);
   const [newExercise, setNewExercise] = useState<Exercise>({
@@ -136,6 +140,39 @@ export default function ProgramDetailPage() {
     });
   };
 
+  const handleExercisesGenerated = (generated: { name: string; sets: number; reps: number; rest: number; notes: string }[]) => {
+    const mapped: Exercise[] = generated.map((ex) => ({
+      id: Date.now().toString() + Math.random(),
+      name: ex.name,
+      sets: ex.sets,
+      reps: String(ex.reps),
+      rest: ex.rest,
+      notes: ex.notes,
+    }));
+    const updated = [...exercises, ...mapped];
+    setExercises(updated);
+    saveProgram(updated, meals);
+    setShowExerciseGenerator(false);
+  };
+
+  const handleMealsGenerated = (generated: { timing: string; description: string; macros?: { protein: number; carbs: number; fat: number } }[]) => {
+    const mapped: Meal[] = generated.map((m) => ({
+      id: Date.now().toString() + Math.random(),
+      name: m.description,
+      timing: m.timing,
+      macros: {
+        protein: m.macros?.protein ?? 0,
+        carbs: m.macros?.carbs ?? 0,
+        fats: m.macros?.fat ?? 0,
+      },
+      recipe: "",
+    }));
+    const updated = [...meals, ...mapped];
+    setMeals(updated);
+    saveProgram(exercises, updated);
+    setShowNutritionGenerator(false);
+  };
+
   if (isLoading) {
     return (
       <div style={{ backgroundColor: "var(--black)", color: "var(--white)" }} className="min-h-screen p-8">
@@ -181,10 +218,25 @@ export default function ProgramDetailPage() {
               <h2 className="font-oswald uppercase text-lg" style={{ color: "var(--white)" }}>
                 Exercises
               </h2>
-              <Button variant="primary" size="sm" onClick={() => setShowAddExercise(true)}>
-                Add Exercise
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => { setShowExerciseGenerator(!showExerciseGenerator); setShowAddExercise(false); }}
+                >
+                  AI Generate
+                </Button>
+                <Button variant="primary" size="sm" onClick={() => { setShowAddExercise(true); setShowExerciseGenerator(false); }}>
+                  Add Manual
+                </Button>
+              </div>
             </div>
+
+            {showExerciseGenerator && (
+              <div className="mb-6">
+                <ExerciseGenerator onExercisesGenerated={handleExercisesGenerated} />
+              </div>
+            )}
 
             {showAddExercise && (
               <Card className="mb-6">
@@ -323,10 +375,25 @@ export default function ProgramDetailPage() {
               <h2 className="font-oswald uppercase text-lg" style={{ color: "var(--white)" }}>
                 Meal Plans
               </h2>
-              <Button variant="primary" size="sm" onClick={() => setShowAddMeal(true)}>
-                Add Meal
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => { setShowNutritionGenerator(!showNutritionGenerator); setShowAddMeal(false); }}
+                >
+                  AI Generate
+                </Button>
+                <Button variant="primary" size="sm" onClick={() => { setShowAddMeal(true); setShowNutritionGenerator(false); }}>
+                  Add Manual
+                </Button>
+              </div>
             </div>
+
+            {showNutritionGenerator && (
+              <div className="mb-6">
+                <NutritionGenerator onMealsGenerated={handleMealsGenerated} />
+              </div>
+            )}
 
             {showAddMeal && (
               <Card className="mb-6">
