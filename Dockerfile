@@ -8,8 +8,9 @@ WORKDIR /app
 # Install pnpm
 RUN npm install -g pnpm@10.4.1
 
-# Copy package files
+# Copy package files and patches
 COPY package.json pnpm-lock.yaml ./
+COPY patches ./patches
 
 # Install all dependencies (including dev dependencies for build)
 RUN pnpm install --frozen-lockfile
@@ -28,8 +29,9 @@ WORKDIR /app
 # Install pnpm
 RUN npm install -g pnpm@10.4.1
 
-# Copy package files from builder
+# Copy package files and patches
 COPY package.json pnpm-lock.yaml ./
+COPY patches ./patches
 
 # Copy built artifacts from builder
 COPY --from=builder /app/dist ./dist
