@@ -10,6 +10,7 @@
     "check": "tsc --noEmit",
     "format": "prettier --write .",
     "test": "vitest run",
+    "test:smoke": "bash smoke-tests.sh",
     "publish": "pnpm build && pnpm publish --access public",
     "db:push": "drizzle-kit generate && drizzle-kit migrate"
   },
