@@ -84,7 +84,8 @@ export default function ProgramDetailPage() {
       saveProgram(updatedExercises, meals);
       setEditingExerciseId(undefined);
     } else {
-      const updatedExercises = [...exercises, { ...newExercise, id: Date.now().toString() }];
+      const uniqueId = `exercise-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const updatedExercises = [...exercises, { ...newExercise, id: uniqueId }];
       setExercises(updatedExercises);
       saveProgram(updatedExercises, meals);
     }
@@ -112,7 +113,8 @@ export default function ProgramDetailPage() {
       saveProgram(exercises, updatedMeals);
       setEditingMealId(undefined);
     } else {
-      const updatedMeals = [...meals, { ...newMeal, id: Date.now().toString() }];
+      const uniqueId = `meal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const updatedMeals = [...meals, { ...newMeal, id: uniqueId }];
       setMeals(updatedMeals);
       saveProgram(exercises, updatedMeals);
     }
@@ -141,8 +143,8 @@ export default function ProgramDetailPage() {
   };
 
   const handleExercisesGenerated = (generated: { name: string; sets: number; reps: number; rest: number; notes: string }[]) => {
-    const mapped: Exercise[] = generated.map((ex) => ({
-      id: Date.now().toString() + Math.random(),
+    const mapped: Exercise[] = generated.map((ex, idx) => ({
+      id: `exercise-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 9)}`,
       name: ex.name,
       sets: ex.sets,
       reps: String(ex.reps),
@@ -156,8 +158,8 @@ export default function ProgramDetailPage() {
   };
 
   const handleMealsGenerated = (generated: { timing: string; description: string; macros?: { protein: number; carbs: number; fat: number } }[]) => {
-    const mapped: Meal[] = generated.map((m) => ({
-      id: Date.now().toString() + Math.random(),
+    const mapped: Meal[] = generated.map((m, idx) => ({
+      id: `meal-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 9)}`,
       name: m.description,
       timing: m.timing,
       macros: {
