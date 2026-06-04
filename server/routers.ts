@@ -394,10 +394,8 @@ Return as JSON with structure: { weeks: [{ day: string, exercises: [{ name, sets
         })
       )
       .mutation(async ({ ctx, input }) => {
-        try {
-          console.log("[Meal Plan] Starting with input:", { clientId: input.clientId, calories: input.dailyCalories });
-          const trainer = await getTrainerByUserId(ctx.user.id);
-          if (!trainer) throw new Error("Trainer profile not found");
+        const trainer = await getTrainerByUserId(ctx.user.id);
+        if (!trainer) throw new Error("Trainer profile not found");
 
         const prompt = `Create a detailed ${input.duration}-day meal plan for ${input.dailyCalories} calories per day.
 
@@ -417,34 +415,23 @@ Return as JSON with structure: {
   shoppingList: [{ item, quantity, category }]
 }`;
 
-        console.log("[Meal Plan] Invoking LLM...");
         const response = await invokeLLM({
           messages: [
             { role: "system", content: "You are an expert nutritionist creating personalized meal plans. Always return valid JSON." },
             { role: "user", content: prompt },
           ],
         });
-        console.log("[Meal Plan] LLM response received");
 
         let mealPlanContent;
         try {
           const content = response.choices[0]?.message?.content;
-          let contentStr = typeof content === 'string' ? content : JSON.stringify(content);
-          // Strip markdown code blocks if present
-          contentStr = contentStr.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+          const contentStr = typeof content === 'string' ? content : JSON.stringify(content);
           mealPlanContent = JSON.parse(contentStr || "{}");
-          console.log("[Meal Plan] Successfully parsed meal plan");
-        } catch (parseError) {
-          console.error("[Meal Plan] Parse error:", parseError);
+        } catch {
           mealPlanContent = { error: "Failed to parse meal plan", raw: response.choices[0]?.message?.content };
         }
 
-        console.log("[Meal Plan] Returning success");
         return { success: true, mealPlan: mealPlanContent };
-        } catch (error) {
-          console.error("[Meal Plan] Error:", error);
-          throw error;
-        }
       }),
   }),
 
@@ -939,7 +926,7 @@ Return as JSON with structure: {
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
-        if (!db) throw new Error("Client profile not found. Contact your trainer.");
+        if (!db) throw new Error("Database not available");
         const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).limit(1);
         if (client.length === 0) throw new Error("Client profile not found. Contact your trainer.");
         const result = await db.insert(checkIns).values({
@@ -966,7 +953,7 @@ Return as JSON with structure: {
       .input(z.object({ content: z.string().min(1) }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
-        if (!db) throw new Error("Client profile not found. Contact your trainer.");
+        if (!db) throw new Error("Database not available");
         const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).limit(1);
         if (client.length === 0) throw new Error("Client profile not found. Contact your trainer.");
         const result = await db.insert(messages).values({
@@ -1003,7 +990,7 @@ Return as JSON with structure: {
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
-        if (!db) throw new Error("Client profile not found. Contact your trainer.");
+        if (!db) throw new Error("Database not available");
         // Validate base64 data
         const buffer = Buffer.from(input.photoData, "base64");
         if (buffer.length === 0) throw new Error("Invalid photo data");

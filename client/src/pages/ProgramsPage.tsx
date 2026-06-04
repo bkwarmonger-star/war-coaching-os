@@ -61,7 +61,7 @@ export default function ProgramsPage() {
                     borderColor: "var(--border)",
                     color: "var(--white)",
                   }}
-                  className="border rounded px-4 py-2 font-rajdhani w-full"
+                  className="border px-4 py-2.5 font-rajdhani w-full"
                   required
                 />
                 <textarea
@@ -73,7 +73,7 @@ export default function ProgramsPage() {
                     borderColor: "var(--border)",
                     color: "var(--white)",
                   }}
-                  className="border rounded px-4 py-2 font-rajdhani w-full"
+                  className="border px-4 py-2.5 font-rajdhani w-full"
                 />
                 <div className="grid grid-cols-2 gap-4">
                   <select
@@ -84,7 +84,7 @@ export default function ProgramsPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani"
+                    className="border px-4 py-2.5 font-rajdhani"
                   >
                     <option value="exercise">Exercise</option>
                     <option value="nutrition">Nutrition</option>
@@ -100,7 +100,7 @@ export default function ProgramsPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani"
+                    className="border px-4 py-2.5 font-rajdhani"
                   />
                 </div>
                 <Button variant="primary" type="submit" className="w-full">

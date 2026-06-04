@@ -47,7 +47,7 @@ export default function Dashboard() {
         <a
           href={getLoginUrl()}
           style={{ backgroundColor: "var(--gold)", color: "#000" }}
-          className="px-8 py-3 rounded font-oswald text-lg uppercase hover:opacity-80 transition-opacity"
+          className="px-8 py-3 rounded-xl font-oswald text-lg uppercase tracking-widest hover:brightness-110 transition-all"
         >
           Get Started
         </a>
@@ -188,8 +188,8 @@ export default function Dashboard() {
                         clientsData.clients.slice(0, 5).map((client) => (
                           <tr
                             key={client.id}
+                                  className="border-b transition-colors cursor-pointer hover:brightness-110"
                             style={{ borderBottomColor: "rgba(255,255,255,0.04)" }}
-                            className="border-b hover:bg-surface2 transition-colors cursor-pointer"
                             onClick={() => setSelectedClient(client.id)}
                           >
                             <td className="px-6 py-4">

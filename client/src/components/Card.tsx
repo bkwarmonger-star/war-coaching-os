@@ -12,10 +12,11 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
         ref={ref}
         style={{
           backgroundColor: 'var(--surface)',
-          borderColor: bordered ? 'var(--border)' : 'transparent',
+          borderColor: bordered ? 'var(--border-gold)' : 'transparent',
           borderWidth: bordered ? '1px' : '0',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.45)',
         }}
-        className={`rounded overflow-hidden ${className}`}
+        className={`rounded-xl overflow-hidden ${className}`}
         {...props}
       />
     );
@@ -34,7 +35,7 @@ export const CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>(
       <div
         ref={ref}
         style={{
-          borderBottomColor: 'var(--border)',
+          borderBottomColor: 'var(--border-gold)',
           borderBottomWidth: '1px',
         }}
         className={`px-6 py-4 ${className}`}
@@ -74,7 +75,7 @@ export const CardFooter = React.forwardRef<HTMLDivElement, CardFooterProps>(
       <div
         ref={ref}
         style={{
-          borderTopColor: 'var(--border)',
+          borderTopColor: 'var(--border-gold)',
           borderTopWidth: '1px',
         }}
         className={`px-6 py-4 ${className}`}

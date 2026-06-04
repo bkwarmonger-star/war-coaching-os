@@ -67,7 +67,7 @@ export default function MealsPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani"
+                    className="border px-4 py-2.5 font-rajdhani"
                     required
                   />
                   <input
@@ -80,7 +80,7 @@ export default function MealsPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani"
+                    className="border px-4 py-2.5 font-rajdhani"
                   />
                   <input
                     type="text"
@@ -92,7 +92,7 @@ export default function MealsPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani"
+                    className="border px-4 py-2.5 font-rajdhani"
                   />
                   <input
                     type="text"
@@ -104,7 +104,7 @@ export default function MealsPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani"
+                    className="border px-4 py-2.5 font-rajdhani"
                   />
                   <textarea
                     placeholder="Food Preferences (comma-separated)"
@@ -115,7 +115,7 @@ export default function MealsPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani col-span-1"
+                    className="border px-4 py-2.5 font-rajdhani col-span-1"
                   />
                   <textarea
                     placeholder="Goals"
@@ -126,7 +126,7 @@ export default function MealsPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani col-span-1"
+                    className="border px-4 py-2.5 font-rajdhani col-span-1"
                   />
                 </div>
                 <Button variant="primary" type="submit" className="w-full">
@@ -147,54 +147,14 @@ export default function MealsPage() {
           </Card>
         )}
 
-        {generateMutation.data && typeof generateMutation.data === "object" && "mealPlan" in generateMutation.data && (
+        {generateMutation.data && typeof generateMutation.data === "object" && "mealPlan" in generateMutation.data && typeof generateMutation.data.mealPlan === "string" && (
           <Card>
             <CardBody>
               <h3 className="font-bebas text-lg mb-4" style={{ color: "var(--gold)" }}>
                 Generated Meal Plan
               </h3>
-              <div className="font-rajdhani text-sm" style={{ color: "var(--white)" }}>
-                {typeof generateMutation.data.mealPlan === "string" ? (
-                  <div className="whitespace-pre-wrap">{generateMutation.data.mealPlan}</div>
-                ) : (
-                  <div className="space-y-6">
-                    {generateMutation.data.mealPlan?.days && Array.isArray(generateMutation.data.mealPlan.days) ? (
-                      generateMutation.data.mealPlan.days.map((day: any, idx: number) => (
-                        <div key={idx} className="border-b border-gold pb-4">
-                          <h4 className="font-bebas text-lg" style={{ color: "var(--gold)" }}>
-                            Day {day.day || idx + 1}
-                          </h4>
-                          {day.meals && Array.isArray(day.meals) ? (
-                            <div className="space-y-3 mt-2">
-                              {day.meals.map((meal: any, mealIdx: number) => (
-                                <div key={mealIdx} style={{ backgroundColor: "var(--surface2)" }} className="p-3 rounded">
-                                  <p className="font-bold">{meal.name}</p>
-                                  {meal.recipe && <p className="text-sm text-muted mt-1">{meal.recipe}</p>}
-                                  {meal.ingredients && Array.isArray(meal.ingredients) && (
-                                    <p className="text-xs text-muted mt-2">
-                                      Ingredients: {meal.ingredients.join(", ")}
-                                    </p>
-                                  )}
-                                  {meal.macros && (
-                                    <p className="text-xs text-muted mt-2">
-                                      P: {meal.macros.protein}g | C: {meal.macros.carbs}g | F: {meal.macros.fats}g | {meal.macros.calories} cal
-                                    </p>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-muted">No meals data</p>
-                          )}
-                        </div>
-                      ))
-                    ) : (
-                      <pre style={{ backgroundColor: "var(--surface2)" }} className="whitespace-pre-wrap text-xs p-4 rounded">
-                        {JSON.stringify(generateMutation.data.mealPlan, null, 2)}
-                      </pre>
-                    )}
-                  </div>
-                )}
+              <div className="font-rajdhani text-sm whitespace-pre-wrap" style={{ color: "var(--white)" }}>
+                {generateMutation.data.mealPlan}
               </div>
             </CardBody>
           </Card>

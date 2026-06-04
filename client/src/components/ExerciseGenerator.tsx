@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { trpc } from "@/lib/trpc";
 import { Card, CardHeader, CardBody } from "@/components/Card";
 
 interface Exercise {
@@ -29,21 +30,14 @@ export function ExerciseGenerator({ onExercisesGenerated, isLoading }: ExerciseG
         body: JSON.stringify({ prompt }),
       });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to generate exercises");
-      }
+      if (!response.ok) throw new Error("Failed to generate exercises");
       
       const data = await response.json();
-      if (!data.exercises || !Array.isArray(data.exercises)) {
-        throw new Error("Invalid response format");
-      }
-      
       onExercisesGenerated(data.exercises);
       setPrompt("");
     } catch (error) {
       console.error("Error generating exercises:", error);
-      alert(`Failed to generate exercises: ${error instanceof Error ? error.message : "Unknown error"}`);
+      alert("Failed to generate exercises. Try again.");
     } finally {
       setGenerating(false);
     }
@@ -72,11 +66,11 @@ export function ExerciseGenerator({ onExercisesGenerated, isLoading }: ExerciseG
         <button
           onClick={generateExercises}
           disabled={generating || isLoading || !prompt.trim()}
-          className="w-full py-2 rounded font-oswald text-sm uppercase cursor-pointer hover:opacity-90 transition-opacity"
+          className="w-full py-2 rounded font-oswald text-sm uppercase"
           style={{
-            backgroundColor: generating || isLoading || !prompt.trim() ? "var(--surface)" : "var(--gold)",
-            color: generating || isLoading || !prompt.trim() ? "var(--muted)" : "#000",
-            opacity: generating || isLoading || !prompt.trim() ? 0.5 : 1,
+            backgroundColor: generating || isLoading ? "var(--surface)" : "var(--gold)",
+            color: generating || isLoading ? "var(--muted)" : "#000",
+            opacity: generating || isLoading ? 0.5 : 1,
           }}
         >
           {generating ? "Generating..." : "Generate Exercises"}

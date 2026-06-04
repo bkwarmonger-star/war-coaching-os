@@ -4,28 +4,8 @@ import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/Button";
 import { Card, CardHeader, CardBody } from "@/components/Card";
-import { ExerciseGenerator } from "@/components/ExerciseGenerator";
-import { NutritionGenerator } from "@/components/NutritionGenerator";
 
 type PortalTab = "dashboard" | "programs" | "meals" | "checkins" | "messages" | "progress" | "sessions";
-
-type GeneratedExercise = {
-  name: string;
-  sets: number;
-  reps: number;
-  rest: number;
-  notes: string;
-};
-
-type GeneratedMeal = {
-  timing: string;
-  description: string;
-  macros?: {
-    protein: number;
-    carbs: number;
-    fat: number;
-  };
-};
 
 export default function ClientPortalPage() {
   const { user, loading } = useAuth();
@@ -194,8 +174,6 @@ function PortalDashboard({ profile }: { profile: any }) {
   const { data: sessions } = trpc.portal.getMySessions.useQuery();
   const { data: checkIns } = trpc.portal.getMyCheckIns.useQuery();
   const { data: messages } = trpc.portal.getMyMessages.useQuery();
-  const [generatedExercises, setGeneratedExercises] = useState<GeneratedExercise[]>([]);
-  const [generatedMeals, setGeneratedMeals] = useState<GeneratedMeal[]>([]);
 
   const activePrograms = programs?.filter((p: any) => p.programType === "exercise") || [];
   const activeMealPlans = programs?.filter((p: any) => p.programType === "nutrition") || [];
@@ -319,57 +297,6 @@ function PortalDashboard({ profile }: { profile: any }) {
             </div>
           </CardBody>
         </Card>
-      )}
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <ExerciseGenerator onExercisesGenerated={setGeneratedExercises} />
-        <NutritionGenerator onMealsGenerated={setGeneratedMeals} />
-      </div>
-
-      {(generatedExercises.length > 0 || generatedMeals.length > 0) && (
-        <div className="space-y-4">
-          {generatedExercises.length > 0 && (
-            <Card>
-              <CardHeader>
-                <h3 className="font-oswald text-lg uppercase" style={{ color: "var(--gold)" }}>Generated Exercises</h3>
-              </CardHeader>
-              <CardBody className="space-y-3">
-                {generatedExercises.map((exercise, index) => (
-                  <div key={index} className="rounded p-4" style={{ backgroundColor: "var(--surface2)", border: "1px solid var(--border)" }}>
-                    <div className="flex items-center justify-between gap-4">
-                      <h4 className="font-oswald text-base uppercase" style={{ color: "var(--white)" }}>{exercise.name}</h4>
-                      <span className="font-rajdhani text-xs uppercase" style={{ color: "var(--muted)" }}>{exercise.sets}×{exercise.reps} @ {exercise.rest}s rest</span>
-                    </div>
-                    <p className="font-rajdhani text-sm mt-2" style={{ color: "var(--muted)" }}>{exercise.notes}</p>
-                  </div>
-                ))}
-              </CardBody>
-            </Card>
-          )}
-
-          {generatedMeals.length > 0 && (
-            <Card>
-              <CardHeader>
-                <h3 className="font-oswald text-lg uppercase" style={{ color: "var(--gold)" }}>Generated Meal Plan</h3>
-              </CardHeader>
-              <CardBody className="space-y-3">
-                {generatedMeals.map((meal, index) => (
-                  <div key={index} className="rounded p-4" style={{ backgroundColor: "var(--surface2)", border: "1px solid var(--border)" }}>
-                    <div className="flex items-center justify-between gap-4">
-                      <h4 className="font-oswald text-base uppercase" style={{ color: "var(--white)" }}>{meal.timing}</h4>
-                      {meal.macros && (
-                        <span className="font-rajdhani text-xs uppercase" style={{ color: "var(--muted)" }}>
-                          P{meal.macros.protein} / C{meal.macros.carbs} / F{meal.macros.fat}
-                        </span>
-                      )}
-                    </div>
-                    <p className="font-rajdhani text-sm mt-2" style={{ color: "var(--muted)" }}>{meal.description}</p>
-                  </div>
-                ))}
-              </CardBody>
-            </Card>
-          )}
-        </div>
       )}
     </div>
   );

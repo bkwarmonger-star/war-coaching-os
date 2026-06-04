@@ -62,7 +62,7 @@ export default function LeadsPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani"
+                    className="border px-4 py-2.5 font-rajdhani"
                     required
                   />
                   <input
@@ -75,7 +75,7 @@ export default function LeadsPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani"
+                    className="border px-4 py-2.5 font-rajdhani"
                   />
                   <input
                     type="tel"
@@ -87,7 +87,7 @@ export default function LeadsPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani"
+                    className="border px-4 py-2.5 font-rajdhani"
                   />
                   <select
                     value={formData.source}
@@ -97,7 +97,7 @@ export default function LeadsPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani"
+                    className="border px-4 py-2.5 font-rajdhani"
                   >
                     <option value="referral">Referral</option>
                     <option value="social">Social Media</option>
@@ -114,7 +114,7 @@ export default function LeadsPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani col-span-2"
+                    className="border px-4 py-2.5 font-rajdhani col-span-2"
                   />
                 </div>
                 <Button variant="primary" type="submit" className="w-full">

@@ -18,74 +18,113 @@ export default function MessagingPage() {
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedClientId || !messageContent.trim()) return;
-
-    await sendMessage.mutateAsync({
-      clientId: selectedClientId,
-      content: messageContent.trim(),
-    });
-
+    await sendMessage.mutateAsync({ clientId: selectedClientId, content: messageContent.trim() });
     setMessageContent("");
   };
 
   const clients = clientsData?.clients || [];
 
   return (
-    <div className="min-h-screen bg-black p-8">
+    <div className="min-h-screen p-4 md:p-8" style={{ backgroundColor: "var(--black)" }}>
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-4xl font-bold text-gold mb-8">Client Messaging</h1>
+        <div className="mb-8">
+          <h1 className="font-bebas text-4xl md:text-5xl" style={{ color: "var(--gold)", letterSpacing: "0.1em" }}>
+            Client Messaging
+          </h1>
+          <p className="font-rajdhani text-sm mt-1" style={{ color: "var(--muted)" }}>
+            Direct communication with your clients
+          </p>
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Client List */}
           <div className="lg:col-span-1">
-            <div className="bg-gray-900 rounded-lg p-4 border border-gold/20 h-full">
-              <h2 className="text-lg font-bold text-gold mb-4">Conversations</h2>
-              <div className="space-y-2">
+            <div
+              className="rounded-xl border p-4 h-full"
+              style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-gold)" }}
+            >
+              <h2
+                className="font-oswald text-xs uppercase tracking-widest mb-4"
+                style={{ color: "var(--muted)" }}
+              >
+                Conversations
+              </h2>
+              <div className="space-y-1.5">
                 {clients.map((c: any) => (
                   <button
                     key={c.id}
                     onClick={() => setSelectedClientId(c.id)}
-                    className={`w-full text-left px-3 py-2 rounded transition ${
+                    className={`w-full text-left px-3 py-2.5 rounded-lg font-oswald text-sm uppercase tracking-wide transition-all ${
                       selectedClientId === c.id
-                        ? "bg-gold text-black font-semibold"
-                        : "bg-gray-800 text-white hover:bg-gray-700"
+                        ? "font-bold"
+                        : "hover:brightness-110"
                     }`}
+                    style={
+                      selectedClientId === c.id
+                        ? { backgroundColor: "var(--gold)", color: "#000" }
+                        : { backgroundColor: "var(--surface2)", color: "var(--white)" }
+                    }
                   >
                     {c.name}
                   </button>
                 ))}
+                {clients.length === 0 && (
+                  <p className="font-rajdhani text-sm text-center py-6" style={{ color: "var(--muted)" }}>
+                    No clients yet
+                  </p>
+                )}
               </div>
             </div>
           </div>
 
           {/* Chat Area */}
           <div className="lg:col-span-3">
-            <div className="bg-gray-900 rounded-lg p-6 border border-gold/20 h-full flex flex-col">
+            <div
+              className="rounded-xl border p-6 flex flex-col"
+              style={{
+                backgroundColor: "var(--surface)",
+                borderColor: "var(--border-gold)",
+                minHeight: "520px",
+              }}
+            >
               {selectedClientId ? (
                 <>
-                  <h2 className="text-xl font-bold text-gold mb-4">
-                    {clients.find((c: any) => c.id === selectedClientId)?.name || "Client"}
-                  </h2>
+                  <div
+                    className="pb-4 mb-4 border-b"
+                    style={{ borderColor: "var(--border-gold)" }}
+                  >
+                    <h2 className="font-bebas text-xl" style={{ color: "var(--gold)", letterSpacing: "0.05em" }}>
+                      {clients.find((c: any) => c.id === selectedClientId)?.name || "Client"}
+                    </h2>
+                  </div>
 
                   {/* Messages */}
-                  <div className="flex-1 overflow-y-auto mb-4 space-y-3">
+                  <div className="flex-1 overflow-y-auto mb-4 space-y-3 min-h-[320px]">
                     {thread && thread.length > 0 ? (
                       thread.map((msg: any) => (
                         <div
                           key={msg.id}
-                          className={`p-3 rounded ${
-                            msg.senderId === user?.id
-                              ? "bg-gold text-black ml-auto max-w-xs"
-                              : "bg-gray-800 text-white mr-auto max-w-xs"
+                          className={`p-3 rounded-xl max-w-xs ${
+                            msg.senderId === user?.id ? "ml-auto" : "mr-auto"
                           }`}
+                          style={
+                            msg.senderId === user?.id
+                              ? { backgroundColor: "var(--gold)", color: "#000" }
+                              : { backgroundColor: "var(--surface2)", color: "var(--white)", border: "1px solid var(--border-gold)" }
+                          }
                         >
-                          <p>{msg.content}</p>
-                          <p className="text-xs opacity-70 mt-1">
-                            {new Date(msg.createdAt).toLocaleTimeString()}
+                          <p className="font-rajdhani text-sm">{msg.content}</p>
+                          <p className="font-rajdhani text-xs opacity-60 mt-1">
+                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                           </p>
                         </div>
                       ))
                     ) : (
-                      <p className="text-gray-400 text-center py-8">No messages yet. Start the conversation!</p>
+                      <div className="flex items-center justify-center h-full">
+                        <p className="font-rajdhani text-sm" style={{ color: "var(--muted)" }}>
+                          No messages yet — start the conversation
+                        </p>
+                      </div>
                     )}
                   </div>
 
@@ -96,20 +135,29 @@ export default function MessagingPage() {
                       value={messageContent}
                       onChange={(e) => setMessageContent(e.target.value)}
                       placeholder="Type a message..."
-                      className="flex-1 px-4 py-2 bg-gray-800 border border-gold/30 rounded text-white placeholder-gray-500"
+                      className="flex-1 px-4 py-2.5 border font-rajdhani text-sm"
+                      style={{
+                        backgroundColor: "var(--surface2)",
+                        borderColor: "var(--border-gold)",
+                        color: "var(--white)",
+                      }}
                     />
                     <button
                       type="submit"
                       disabled={!messageContent.trim() || sendMessage.isPending}
-                      className="px-6 py-2 bg-gold text-black font-bold rounded hover:bg-gold/90 disabled:opacity-50"
+                      className="px-6 py-2.5 rounded-lg font-oswald text-sm uppercase tracking-widest disabled:opacity-50 hover:brightness-110 transition-all"
+                      style={{ backgroundColor: "var(--gold)", color: "#000" }}
                     >
-                      {sendMessage.isPending ? "..." : "Send"}
+                      {sendMessage.isPending ? "…" : "Send"}
                     </button>
                   </form>
                 </>
               ) : (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-gray-400">Select a client to start messaging</p>
+                <div className="flex flex-col items-center justify-center h-full gap-3 py-20">
+                  <div className="font-bebas text-5xl opacity-10" style={{ color: "var(--gold)" }}>✉</div>
+                  <p className="font-rajdhani text-sm" style={{ color: "var(--muted)" }}>
+                    Select a client to start messaging
+                  </p>
                 </div>
               )}
             </div>

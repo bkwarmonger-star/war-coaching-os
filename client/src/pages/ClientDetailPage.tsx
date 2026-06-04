@@ -132,7 +132,7 @@ export default function ClientDetailPage() {
                 </Button>
                 <Button
                   onClick={() => {
-                    const url = `${window.location.origin}/client-profile/${clientId}`;
+                    const url = `${window.location.origin}/public-profile/${clientId}`;
                     navigator.clipboard.writeText(url);
                     alert("Profile link copied to clipboard!");
                   }}
@@ -177,7 +177,7 @@ export default function ClientDetailPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani"
+                    className="border px-4 py-2.5 font-rajdhani"
                     required
                   />
                   <input
@@ -190,7 +190,7 @@ export default function ClientDetailPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani"
+                    className="border px-4 py-2.5 font-rajdhani"
                     required
                   />
                   <input
@@ -203,7 +203,7 @@ export default function ClientDetailPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani"
+                    className="border px-4 py-2.5 font-rajdhani"
                   />
                   <select
                     value={formData.sex}
@@ -213,7 +213,7 @@ export default function ClientDetailPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani"
+                    className="border px-4 py-2.5 font-rajdhani"
                   >
                     <option value="">Select Sex</option>
                     <option value="male">Male</option>
@@ -231,7 +231,7 @@ export default function ClientDetailPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani"
+                    className="border px-4 py-2.5 font-rajdhani"
                   />
                   <input
                     type="number"
@@ -244,7 +244,7 @@ export default function ClientDetailPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani"
+                    className="border px-4 py-2.5 font-rajdhani"
                   />
                   <textarea
                     placeholder="Goals"
@@ -255,7 +255,7 @@ export default function ClientDetailPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani col-span-2"
+                    className="border px-4 py-2.5 font-rajdhani col-span-2"
                   />
                   <textarea
                     placeholder="Injuries / Limitations"
@@ -266,7 +266,7 @@ export default function ClientDetailPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani col-span-2"
+                    className="border px-4 py-2.5 font-rajdhani col-span-2"
                   />
                   <select
                     value={formData.fitnessLevel}
@@ -276,7 +276,7 @@ export default function ClientDetailPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani"
+                    className="border px-4 py-2.5 font-rajdhani"
                   >
                     <option value="">Select Fitness Level</option>
                     <option value="beginner">Beginner</option>
@@ -292,7 +292,7 @@ export default function ClientDetailPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani"
+                    className="border px-4 py-2.5 font-rajdhani"
                   >
                     <option value="in-person">In-Person</option>
                     <option value="online">Online</option>

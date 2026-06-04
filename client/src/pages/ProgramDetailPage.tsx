@@ -3,8 +3,6 @@ import { useRoute, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/Button";
 import { Card, CardHeader, CardBody } from "@/components/Card";
-import { ExerciseGenerator } from "@/components/ExerciseGenerator";
-import { NutritionGenerator } from "@/components/NutritionGenerator";
 
 interface Exercise {
   id?: string;
@@ -37,8 +35,6 @@ export default function ProgramDetailPage() {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [showAddMeal, setShowAddMeal] = useState(false);
-  const [showExerciseGenerator, setShowExerciseGenerator] = useState(false);
-  const [showNutritionGenerator, setShowNutritionGenerator] = useState(false);
   const [editingExerciseId, setEditingExerciseId] = useState<string | undefined>(undefined);
   const [editingMealId, setEditingMealId] = useState<string | undefined>(undefined);
   const [newExercise, setNewExercise] = useState<Exercise>({
@@ -84,8 +80,7 @@ export default function ProgramDetailPage() {
       saveProgram(updatedExercises, meals);
       setEditingExerciseId(undefined);
     } else {
-      const uniqueId = `exercise-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const updatedExercises = [...exercises, { ...newExercise, id: uniqueId }];
+      const updatedExercises = [...exercises, { ...newExercise, id: Date.now().toString() }];
       setExercises(updatedExercises);
       saveProgram(updatedExercises, meals);
     }
@@ -113,8 +108,7 @@ export default function ProgramDetailPage() {
       saveProgram(exercises, updatedMeals);
       setEditingMealId(undefined);
     } else {
-      const uniqueId = `meal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const updatedMeals = [...meals, { ...newMeal, id: uniqueId }];
+      const updatedMeals = [...meals, { ...newMeal, id: Date.now().toString() }];
       setMeals(updatedMeals);
       saveProgram(exercises, updatedMeals);
     }
@@ -140,39 +134,6 @@ export default function ProgramDetailPage() {
       programId: parseInt(programId),
       content: { exercises: exs, meals: mls },
     });
-  };
-
-  const handleExercisesGenerated = (generated: { name: string; sets: number; reps: number; rest: number; notes: string }[]) => {
-    const mapped: Exercise[] = generated.map((ex, idx) => ({
-      id: `exercise-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 9)}`,
-      name: ex.name,
-      sets: ex.sets,
-      reps: String(ex.reps),
-      rest: ex.rest,
-      notes: ex.notes,
-    }));
-    const updated = [...exercises, ...mapped];
-    setExercises(updated);
-    saveProgram(updated, meals);
-    setShowExerciseGenerator(false);
-  };
-
-  const handleMealsGenerated = (generated: { timing: string; description: string; macros?: { protein: number; carbs: number; fat: number } }[]) => {
-    const mapped: Meal[] = generated.map((m, idx) => ({
-      id: `meal-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 9)}`,
-      name: m.description,
-      timing: m.timing,
-      macros: {
-        protein: m.macros?.protein ?? 0,
-        carbs: m.macros?.carbs ?? 0,
-        fats: m.macros?.fat ?? 0,
-      },
-      recipe: "",
-    }));
-    const updated = [...meals, ...mapped];
-    setMeals(updated);
-    saveProgram(exercises, updated);
-    setShowNutritionGenerator(false);
   };
 
   if (isLoading) {
@@ -220,25 +181,10 @@ export default function ProgramDetailPage() {
               <h2 className="font-oswald uppercase text-lg" style={{ color: "var(--white)" }}>
                 Exercises
               </h2>
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => { setShowExerciseGenerator(!showExerciseGenerator); setShowAddExercise(false); }}
-                >
-                  AI Generate
-                </Button>
-                <Button variant="primary" size="sm" onClick={() => { setShowAddExercise(true); setShowExerciseGenerator(false); }}>
-                  Add Manual
-                </Button>
-              </div>
+              <Button variant="primary" size="sm" onClick={() => setShowAddExercise(true)}>
+                Add Exercise
+              </Button>
             </div>
-
-            {showExerciseGenerator && (
-              <div className="mb-6">
-                <ExerciseGenerator onExercisesGenerated={handleExercisesGenerated} />
-              </div>
-            )}
 
             {showAddExercise && (
               <Card className="mb-6">
@@ -377,25 +323,10 @@ export default function ProgramDetailPage() {
               <h2 className="font-oswald uppercase text-lg" style={{ color: "var(--white)" }}>
                 Meal Plans
               </h2>
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => { setShowNutritionGenerator(!showNutritionGenerator); setShowAddMeal(false); }}
-                >
-                  AI Generate
-                </Button>
-                <Button variant="primary" size="sm" onClick={() => { setShowAddMeal(true); setShowNutritionGenerator(false); }}>
-                  Add Manual
-                </Button>
-              </div>
+              <Button variant="primary" size="sm" onClick={() => setShowAddMeal(true)}>
+                Add Meal
+              </Button>
             </div>
-
-            {showNutritionGenerator && (
-              <div className="mb-6">
-                <NutritionGenerator onMealsGenerated={handleMealsGenerated} />
-              </div>
-            )}
 
             {showAddMeal && (
               <Card className="mb-6">

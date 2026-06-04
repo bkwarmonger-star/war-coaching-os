@@ -30,93 +30,115 @@ const POSE_CONFIG: Record<Pose, { label: string; instructions: string }> = {
   },
 };
 
-// SVG Silhouette overlay component
+// Filled body silhouette overlay — guides consistent photo positioning
 function SilhouetteOverlay({ pose }: { pose: Pose }) {
-  const silhouettes: Record<Pose, React.ReactNode> = {
+  const gradId = `grad-${pose}`;
+
+  const bodies: Record<Pose, React.ReactNode> = {
     front: (
-      <svg viewBox="0 0 200 400" className="w-full h-full opacity-30">
+      <g>
         {/* Head */}
-        <ellipse cx="100" cy="40" rx="22" ry="28" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeDasharray="4 2" />
+        <ellipse cx="100" cy="33" rx="21" ry="26" />
         {/* Neck */}
-        <rect x="92" y="66" width="16" height="14" fill="none" stroke="#D4AF37" strokeWidth="1" strokeDasharray="4 2" />
-        {/* Torso */}
-        <path d="M 70 80 Q 65 120 68 160 L 68 200 Q 70 220 80 230 L 120 230 Q 130 220 132 200 L 132 160 Q 135 120 130 80 Z" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeDasharray="4 2" />
+        <path d="M 91 56 L 109 56 L 111 72 L 89 72 Z" />
+        {/* Torso — shoulders wide, waist nips in, hips flare */}
+        <path d="M 47 78 C 40 118 56 155 55 208 L 145 208 C 144 155 160 118 153 78 Q 128 70 100 70 Q 72 70 47 78 Z" />
         {/* Left arm */}
-        <path d="M 70 85 Q 55 100 48 130 Q 42 160 40 200 Q 38 220 42 240" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeDasharray="4 2" />
+        <path d="M 50 82 Q 32 114 28 158 Q 24 194 26 236 L 40 236 Q 40 198 44 166 Q 48 128 63 94 Z" />
         {/* Right arm */}
-        <path d="M 130 85 Q 145 100 152 130 Q 158 160 160 200 Q 162 220 158 240" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeDasharray="4 2" />
+        <path d="M 150 82 Q 168 114 172 158 Q 176 194 174 236 L 160 236 Q 160 198 156 166 Q 152 128 137 94 Z" />
+        {/* Hips / pelvis bridge */}
+        <path d="M 52 200 L 148 200 L 146 242 L 54 242 Z" />
         {/* Left leg */}
-        <path d="M 80 230 Q 78 270 76 310 Q 74 350 76 390" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeDasharray="4 2" />
+        <path d="M 56 240 Q 55 285 55 330 Q 55 362 59 396 L 83 396 Q 82 362 80 330 Q 78 285 78 240 Z" />
         {/* Right leg */}
-        <path d="M 120 230 Q 122 270 124 310 Q 126 350 124 390" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeDasharray="4 2" />
-        {/* Center line */}
-        <line x1="100" y1="10" x2="100" y2="395" stroke="#D4AF37" strokeWidth="0.5" strokeDasharray="2 4" opacity="0.5" />
-      </svg>
+        <path d="M 144 240 Q 145 285 145 330 Q 145 362 141 396 L 117 396 Q 118 362 120 330 Q 122 285 122 240 Z" />
+      </g>
     ),
     back: (
-      <svg viewBox="0 0 200 400" className="w-full h-full opacity-30">
+      <g>
         {/* Head */}
-        <ellipse cx="100" cy="40" rx="22" ry="28" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeDasharray="4 2" />
+        <ellipse cx="100" cy="33" rx="21" ry="26" />
         {/* Neck */}
-        <rect x="92" y="66" width="16" height="14" fill="none" stroke="#D4AF37" strokeWidth="1" strokeDasharray="4 2" />
-        {/* Torso - back view shows shoulder blades */}
-        <path d="M 70 80 Q 65 120 68 160 L 68 200 Q 70 220 80 230 L 120 230 Q 130 220 132 200 L 132 160 Q 135 120 130 80 Z" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeDasharray="4 2" />
-        {/* Shoulder blade indicators */}
-        <ellipse cx="85" cy="120" rx="10" ry="15" fill="none" stroke="#D4AF37" strokeWidth="0.8" strokeDasharray="3 2" opacity="0.6" />
-        <ellipse cx="115" cy="120" rx="10" ry="15" fill="none" stroke="#D4AF37" strokeWidth="0.8" strokeDasharray="3 2" opacity="0.6" />
+        <path d="M 91 56 L 109 56 L 111 72 L 89 72 Z" />
+        {/* Torso — back is slightly wider at traps */}
+        <path d="M 44 76 C 38 116 54 153 53 208 L 147 208 C 146 153 162 116 156 76 Q 130 68 100 68 Q 70 68 44 76 Z" />
         {/* Left arm */}
-        <path d="M 70 85 Q 55 100 48 130 Q 42 160 40 200 Q 38 220 42 240" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeDasharray="4 2" />
+        <path d="M 47 80 Q 30 112 26 156 Q 22 192 24 234 L 38 234 Q 38 196 42 164 Q 46 126 61 92 Z" />
         {/* Right arm */}
-        <path d="M 130 85 Q 145 100 152 130 Q 158 160 160 200 Q 162 220 158 240" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeDasharray="4 2" />
+        <path d="M 153 80 Q 170 112 174 156 Q 178 192 176 234 L 162 234 Q 162 196 158 164 Q 154 126 139 92 Z" />
+        {/* Hips */}
+        <path d="M 50 198 L 150 198 L 148 242 L 52 242 Z" />
         {/* Left leg */}
-        <path d="M 80 230 Q 78 270 76 310 Q 74 350 76 390" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeDasharray="4 2" />
+        <path d="M 54 240 Q 53 285 53 330 Q 53 362 57 396 L 81 396 Q 80 362 78 330 Q 76 285 76 240 Z" />
         {/* Right leg */}
-        <path d="M 120 230 Q 122 270 124 310 Q 126 350 124 390" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeDasharray="4 2" />
-        {/* Spine line */}
-        <line x1="100" y1="68" x2="100" y2="230" stroke="#D4AF37" strokeWidth="0.5" strokeDasharray="2 4" opacity="0.5" />
-      </svg>
+        <path d="M 146 240 Q 147 285 147 330 Q 147 362 143 396 L 119 396 Q 120 362 122 330 Q 124 285 124 240 Z" />
+        {/* Shoulder blade markers */}
+        <ellipse cx="84" cy="115" rx="10" ry="15" opacity="0.45" />
+        <ellipse cx="116" cy="115" rx="10" ry="15" opacity="0.45" />
+      </g>
     ),
     left_side: (
-      <svg viewBox="0 0 200 400" className="w-full h-full opacity-30">
-        {/* Head - side profile */}
-        <ellipse cx="105" cy="40" rx="18" ry="26" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeDasharray="4 2" />
+      <g>
+        {/* Head — shifted right (body faces right) */}
+        <ellipse cx="105" cy="33" rx="19" ry="25" />
         {/* Neck */}
-        <rect x="97" y="64" width="12" height="16" fill="none" stroke="#D4AF37" strokeWidth="1" strokeDasharray="4 2" />
-        {/* Torso - side view */}
-        <path d="M 88 80 Q 82 110 84 140 L 84 200 Q 86 220 92 230 L 118 230 Q 124 220 126 200 L 126 140 Q 128 110 122 80 Z" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeDasharray="4 2" />
-        {/* Arm */}
-        <path d="M 90 90 Q 80 120 78 160 Q 76 200 80 240" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeDasharray="4 2" />
-        {/* Left leg (visible) */}
-        <path d="M 95 230 Q 92 270 90 310 Q 88 350 90 390" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeDasharray="4 2" />
-        {/* Right leg (behind) */}
-        <path d="M 115 230 Q 118 270 120 310 Q 122 350 120 390" fill="none" stroke="#D4AF37" strokeWidth="1.2" strokeDasharray="4 2" opacity="0.5" />
-        {/* Posture line */}
-        <line x1="105" y1="10" x2="105" y2="395" stroke="#D4AF37" strokeWidth="0.5" strokeDasharray="2 4" opacity="0.5" />
-      </svg>
+        <path d="M 97 55 L 113 55 L 112 70 L 96 70 Z" />
+        {/* Torso — side profile, chest protrudes forward (right) */}
+        <path d="M 84 74 C 120 72 128 90 128 130 C 128 168 120 196 116 210 L 88 210 C 84 196 76 168 76 130 C 76 94 84 74 84 74 Z" />
+        {/* Near arm */}
+        <path d="M 82 80 Q 68 112 66 156 Q 64 192 66 234 L 80 234 Q 80 196 82 160 Q 86 124 96 92 Z" />
+        {/* Hip */}
+        <path d="M 78 200 L 124 200 L 122 244 L 80 244 Z" />
+        {/* Near leg */}
+        <path d="M 95 242 Q 96 286 97 330 Q 98 362 97 396 L 117 396 Q 117 362 115 330 Q 113 286 110 242 Z" />
+        {/* Far leg (receding) */}
+        <path d="M 78 244 Q 77 286 76 330 Q 75 362 76 396 L 93 396 Q 93 362 90 330 Q 87 286 85 244 Z" opacity="0.48" />
+      </g>
     ),
     right_side: (
-      <svg viewBox="0 0 200 400" className="w-full h-full opacity-30">
-        {/* Head - side profile */}
-        <ellipse cx="95" cy="40" rx="18" ry="26" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeDasharray="4 2" />
+      <g>
+        {/* Head — shifted left (body faces left) */}
+        <ellipse cx="95" cy="33" rx="19" ry="25" />
         {/* Neck */}
-        <rect x="89" y="64" width="12" height="16" fill="none" stroke="#D4AF37" strokeWidth="1" strokeDasharray="4 2" />
-        {/* Torso - side view */}
-        <path d="M 78 80 Q 72 110 74 140 L 74 200 Q 76 220 82 230 L 108 230 Q 114 220 116 200 L 116 140 Q 118 110 112 80 Z" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeDasharray="4 2" />
-        {/* Arm */}
-        <path d="M 110 90 Q 120 120 122 160 Q 124 200 120 240" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeDasharray="4 2" />
-        {/* Right leg (visible) */}
-        <path d="M 105 230 Q 108 270 110 310 Q 112 350 110 390" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeDasharray="4 2" />
-        {/* Left leg (behind) */}
-        <path d="M 85 230 Q 82 270 80 310 Q 78 350 80 390" fill="none" stroke="#D4AF37" strokeWidth="1.2" strokeDasharray="4 2" opacity="0.5" />
-        {/* Posture line */}
-        <line x1="95" y1="10" x2="95" y2="395" stroke="#D4AF37" strokeWidth="0.5" strokeDasharray="2 4" opacity="0.5" />
-      </svg>
+        <path d="M 87 55 L 103 55 L 104 70 L 88 70 Z" />
+        {/* Torso — side profile mirrored */}
+        <path d="M 116 74 C 80 72 72 90 72 130 C 72 168 80 196 84 210 L 112 210 C 116 196 124 168 124 130 C 124 94 116 74 116 74 Z" />
+        {/* Near arm */}
+        <path d="M 118 80 Q 132 112 134 156 Q 136 192 134 234 L 120 234 Q 120 196 118 160 Q 114 124 104 92 Z" />
+        {/* Hip */}
+        <path d="M 76 200 L 122 200 L 120 244 L 78 244 Z" />
+        {/* Near leg */}
+        <path d="M 83 242 Q 84 286 85 330 Q 86 362 85 396 L 105 396 Q 105 362 103 330 Q 101 286 98 242 Z" />
+        {/* Far leg (receding) */}
+        <path d="M 105 244 Q 106 286 107 330 Q 108 362 107 396 L 123 396 Q 123 362 121 330 Q 119 286 117 244 Z" opacity="0.48" />
+      </g>
     ),
   };
 
   return (
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-      {silhouettes[pose]}
+      <svg
+        viewBox="0 0 200 420"
+        className="w-full h-full"
+        style={{ filter: "drop-shadow(0 0 12px rgba(201,168,76,0.22))" }}
+      >
+        <defs>
+          <linearGradient id={gradId} x1="50%" y1="0%" x2="50%" y2="100%">
+            <stop offset="0%" stopColor="#c9a84c" stopOpacity="0.42" />
+            <stop offset="55%" stopColor="#c9a84c" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="#8a6e2f" stopOpacity="0.14" />
+          </linearGradient>
+        </defs>
+        <g fill={`url(#${gradId})`}>{bodies[pose]}</g>
+        {/* Center plumb line */}
+        <line
+          x1="100" y1="6" x2="100" y2="414"
+          stroke="#c9a84c" strokeWidth="0.6"
+          strokeDasharray="3 11"
+          opacity="0.28"
+        />
+      </svg>
     </div>
   );
 }
@@ -190,7 +212,6 @@ function PhotoCapture({
 
   const confirmPhoto = () => {
     if (!preview) return;
-    // Extract base64 data (remove data:image/jpeg;base64, prefix)
     const base64 = preview.split(",")[1];
     onCapture(base64);
     setPreview(null);
@@ -201,19 +222,39 @@ function PhotoCapture({
   };
 
   return (
-    <div className="bg-gray-900 rounded-lg border border-gold/20 overflow-hidden">
+    <div className="bg-gray-900 rounded-xl border border-gold/20 overflow-hidden shadow-lg transition-colors hover:border-gold/35">
       {/* Header */}
-      <div className="p-4 border-b border-gold/10">
-        <h3 className="font-oswald text-lg text-gold uppercase">{config.label}</h3>
-        <p className="text-gray-400 text-sm mt-1">{config.instructions}</p>
+      <div className="px-4 py-3 border-b border-gold/10 flex items-center justify-between">
+        <h3 className="font-oswald text-base text-gold uppercase tracking-wider">{config.label}</h3>
       </div>
+      <p className="text-gray-500 text-xs px-4 pt-2 pb-1 font-rajdhani leading-snug">{config.instructions}</p>
 
       {/* Capture area */}
-      <div className="relative aspect-[3/4] bg-gray-950">
-        {/* Silhouette overlay - always visible */}
-        <SilhouetteOverlay pose={pose} />
+      <div className="relative aspect-[3/4] bg-[#0a0a0a] mx-4 mb-3 mt-1 rounded-lg overflow-hidden">
+        {/* Rule-of-thirds grid */}
+        {!preview && (
+          <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.055 }}>
+            <div className="absolute left-1/3 inset-y-0 w-px bg-gold" />
+            <div className="absolute left-2/3 inset-y-0 w-px bg-gold" />
+            <div className="absolute top-1/3 inset-x-0 h-px bg-gold" />
+            <div className="absolute top-2/3 inset-x-0 h-px bg-gold" />
+          </div>
+        )}
 
-        {/* Camera view */}
+        {/* Corner brackets */}
+        {!preview && (
+          <>
+            <div className="absolute top-2.5 left-2.5 w-5 h-5 border-t-2 border-l-2 border-gold/40 pointer-events-none" />
+            <div className="absolute top-2.5 right-2.5 w-5 h-5 border-t-2 border-r-2 border-gold/40 pointer-events-none" />
+            <div className="absolute bottom-2.5 left-2.5 w-5 h-5 border-b-2 border-l-2 border-gold/40 pointer-events-none" />
+            <div className="absolute bottom-2.5 right-2.5 w-5 h-5 border-b-2 border-r-2 border-gold/40 pointer-events-none" />
+          </>
+        )}
+
+        {/* Silhouette — always shown unless previewing */}
+        {!preview && <SilhouetteOverlay pose={pose} />}
+
+        {/* Live camera */}
         {isCameraActive && !preview && (
           <video
             ref={videoRef}
@@ -224,21 +265,20 @@ function PhotoCapture({
           />
         )}
 
-        {/* Preview */}
+        {/* Photo preview */}
         {preview && (
           <img src={preview} alt="Preview" className="absolute inset-0 w-full h-full object-cover" />
         )}
 
-        {/* Empty state */}
+        {/* Empty state hint */}
         {!isCameraActive && !preview && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <p className="text-gray-500 text-sm text-center px-4 mt-auto mb-8">
-              Align your body with the gold silhouette guide
+          <div className="absolute inset-x-0 bottom-0 pb-4 flex justify-center pointer-events-none">
+            <p className="text-gray-600 text-[10px] font-rajdhani tracking-widest uppercase">
+              Align with silhouette
             </p>
           </div>
         )}
 
-        {/* Hidden canvas for capture */}
         <canvas ref={canvasRef} className="hidden" />
         <input
           ref={fileInputRef}
@@ -251,20 +291,20 @@ function PhotoCapture({
       </div>
 
       {/* Controls */}
-      <div className="p-4 space-y-2">
+      <div className="px-4 pb-4 space-y-2">
         {!isCameraActive && !preview && (
           <div className="flex gap-2">
             <button
               onClick={startCamera}
-              className="flex-1 px-4 py-3 bg-gold text-black font-bold rounded hover:bg-gold/90 transition-colors font-oswald uppercase text-sm"
+              className="flex-1 px-4 py-2.5 bg-gold text-black font-bold rounded-lg hover:bg-gold/90 transition-colors font-oswald uppercase text-sm tracking-wide"
             >
               Open Camera
             </button>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex-1 px-4 py-3 bg-gray-800 text-white font-bold rounded hover:bg-gray-700 transition-colors border border-gold/30 font-oswald uppercase text-sm"
+              className="flex-1 px-4 py-2.5 bg-gray-800 text-white font-bold rounded-lg hover:bg-gray-700 transition-colors border border-gold/30 font-oswald uppercase text-sm tracking-wide"
             >
-              Upload File
+              Upload
             </button>
           </div>
         )}
@@ -273,13 +313,13 @@ function PhotoCapture({
           <div className="flex gap-2">
             <button
               onClick={capturePhoto}
-              className="flex-1 px-4 py-3 bg-gold text-black font-bold rounded hover:bg-gold/90 transition-colors font-oswald uppercase text-sm"
+              className="flex-1 px-4 py-2.5 bg-gold text-black font-bold rounded-lg hover:bg-gold/90 transition-colors font-oswald uppercase text-sm tracking-wide"
             >
               Capture
             </button>
             <button
               onClick={stopCamera}
-              className="px-4 py-3 bg-gray-800 text-white rounded hover:bg-gray-700 border border-gold/30 font-oswald uppercase text-sm"
+              className="px-4 py-2.5 bg-gray-800 text-white rounded-lg hover:bg-gray-700 border border-gold/30 font-oswald uppercase text-sm"
             >
               Cancel
             </button>
@@ -291,14 +331,14 @@ function PhotoCapture({
             <button
               onClick={confirmPhoto}
               disabled={isUploading}
-              className="flex-1 px-4 py-3 bg-green-600 text-white font-bold rounded hover:bg-green-500 transition-colors font-oswald uppercase text-sm disabled:opacity-50"
+              className="flex-1 px-4 py-2.5 bg-green-600 text-white font-bold rounded-lg hover:bg-green-500 transition-colors font-oswald uppercase text-sm tracking-wide disabled:opacity-50"
             >
-              {isUploading ? "Uploading..." : "Confirm & Upload"}
+              {isUploading ? "Uploading..." : "Confirm & Save"}
             </button>
             <button
               onClick={retakePhoto}
               disabled={isUploading}
-              className="px-4 py-3 bg-gray-800 text-white rounded hover:bg-gray-700 border border-gold/30 font-oswald uppercase text-sm"
+              className="px-4 py-2.5 bg-gray-800 text-white rounded-lg hover:bg-gray-700 border border-gold/30 font-oswald uppercase text-sm"
             >
               Retake
             </button>
@@ -317,7 +357,7 @@ function MonthlyComparison({ photoSets }: { photoSets: PhotoSet[] }) {
 
   if (photoSets.length < 2) {
     return (
-      <div className="bg-gray-900 rounded-lg border border-gold/20 p-8 text-center">
+      <div className="bg-gray-900 rounded-xl border border-gold/20 p-8 text-center">
         <p className="text-gray-400">
           {photoSets.length === 0
             ? "No photo sets yet. Upload your first set to start tracking progress."
@@ -333,7 +373,7 @@ function MonthlyComparison({ photoSets }: { photoSets: PhotoSet[] }) {
   const photoB = setB?.photos.find((p: any) => p.pose === selectedPose);
 
   return (
-    <div className="bg-gray-900 rounded-lg border border-gold/20 p-6">
+    <div className="bg-gray-900 rounded-xl border border-gold/20 p-6">
       <h3 className="font-oswald text-xl text-gold uppercase mb-4">Monthly Comparison</h3>
 
       {/* Pose selector */}
@@ -342,7 +382,7 @@ function MonthlyComparison({ photoSets }: { photoSets: PhotoSet[] }) {
           <button
             key={pose}
             onClick={() => setSelectedPose(pose)}
-            className={`px-3 py-1.5 rounded text-sm font-rajdhani font-semibold transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-sm font-rajdhani font-semibold transition-colors ${
               selectedPose === pose
                 ? "bg-gold text-black"
                 : "bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gold/20"
@@ -360,7 +400,7 @@ function MonthlyComparison({ photoSets }: { photoSets: PhotoSet[] }) {
           <select
             value={compareA}
             onChange={(e) => setCompareA(parseInt(e.target.value))}
-            className="w-full px-3 py-2 bg-gray-800 border border-gold/30 rounded text-white text-sm"
+            className="w-full px-3 py-2 bg-gray-800 border border-gold/30 rounded-lg text-white text-sm"
           >
             {photoSets.map((set, i) => (
               <option key={set.id} value={i}>
@@ -374,7 +414,7 @@ function MonthlyComparison({ photoSets }: { photoSets: PhotoSet[] }) {
           <select
             value={compareB}
             onChange={(e) => setCompareB(parseInt(e.target.value))}
-            className="w-full px-3 py-2 bg-gray-800 border border-gold/30 rounded text-white text-sm"
+            className="w-full px-3 py-2 bg-gray-800 border border-gold/30 rounded-lg text-white text-sm"
           >
             {photoSets.map((set, i) => (
               <option key={set.id} value={i}>
@@ -387,7 +427,7 @@ function MonthlyComparison({ photoSets }: { photoSets: PhotoSet[] }) {
 
       {/* Comparison images */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="relative aspect-[3/4] bg-gray-950 rounded-lg overflow-hidden border border-gold/10">
+        <div className="relative aspect-[3/4] bg-gray-950 rounded-xl overflow-hidden border border-gold/10">
           {photoA ? (
             <img src={photoA.url} alt="Before" className="w-full h-full object-cover" />
           ) : (
@@ -395,13 +435,14 @@ function MonthlyComparison({ photoSets }: { photoSets: PhotoSet[] }) {
               <p className="text-gray-500 text-sm">No {POSE_CONFIG[selectedPose].label.toLowerCase()} photo</p>
             </div>
           )}
-          <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-3 py-2">
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-3 py-3">
+            <p className="text-[10px] font-rajdhani font-semibold uppercase tracking-widest text-gray-400">Before</p>
             <p className="text-gold text-xs font-rajdhani font-semibold">
               {setA ? new Date(setA.date).toLocaleDateString() : "—"}
             </p>
           </div>
         </div>
-        <div className="relative aspect-[3/4] bg-gray-950 rounded-lg overflow-hidden border border-gold/10">
+        <div className="relative aspect-[3/4] bg-gray-950 rounded-xl overflow-hidden border border-gold/10">
           {photoB ? (
             <img src={photoB.url} alt="After" className="w-full h-full object-cover" />
           ) : (
@@ -409,7 +450,8 @@ function MonthlyComparison({ photoSets }: { photoSets: PhotoSet[] }) {
               <p className="text-gray-500 text-sm">No {POSE_CONFIG[selectedPose].label.toLowerCase()} photo</p>
             </div>
           )}
-          <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-3 py-2">
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-3 py-3">
+            <p className="text-[10px] font-rajdhani font-semibold uppercase tracking-widest text-gray-400">After</p>
             <p className="text-gold text-xs font-rajdhani font-semibold">
               {setB ? new Date(setB.date).toLocaleDateString() : "—"}
             </p>
@@ -425,7 +467,7 @@ function PhotoTimeline({ photoSets }: { photoSets: PhotoSet[] }) {
   if (photoSets.length === 0) return null;
 
   return (
-    <div className="bg-gray-900 rounded-lg border border-gold/20 p-6">
+    <div className="bg-gray-900 rounded-xl border border-gold/20 p-6">
       <h3 className="font-oswald text-xl text-gold uppercase mb-4">Photo History</h3>
       <div className="space-y-6">
         {photoSets.map((set) => (
@@ -436,10 +478,10 @@ function PhotoTimeline({ photoSets }: { photoSets: PhotoSet[] }) {
             {set.notes && <p className="text-gray-400 text-sm mt-1">{set.notes}</p>}
             <div className="grid grid-cols-4 gap-2 mt-2">
               {set.photos.map((photo: any, i: number) => (
-                <div key={i} className="relative aspect-[3/4] bg-gray-950 rounded overflow-hidden border border-gold/10">
+                <div key={i} className="relative aspect-[3/4] bg-gray-950 rounded-lg overflow-hidden border border-gold/10">
                   <img src={photo.url} alt={photo.pose} className="w-full h-full object-cover" />
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-1 py-0.5">
-                    <p className="text-gold text-[10px] font-rajdhani uppercase text-center">{photo.pose.replace("_", " ")}</p>
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-1 py-1.5">
+                    <p className="text-gold text-[9px] font-rajdhani uppercase tracking-wider text-center">{photo.pose.replace("_", " ")}</p>
                   </div>
                 </div>
               ))}
@@ -499,20 +541,20 @@ export default function PhotoProgressPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="font-bebas text-4xl md:text-5xl text-gold tracking-wide">Progress Photos</h1>
-          <p className="text-gray-400 font-rajdhani mt-1">
+          <p className="text-gray-500 font-rajdhani mt-1">
             Guided photo capture with silhouette overlays for consistent progress tracking
           </p>
         </div>
 
         {/* Client selector */}
-        <div className="bg-gray-900 rounded-lg border border-gold/20 p-4 mb-6">
+        <div className="bg-gray-900 rounded-xl border border-gold/20 p-4 mb-6">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
             <div className="flex-1">
-              <label className="block text-sm font-semibold text-gray-300 mb-2 font-rajdhani">Select Client</label>
+              <label className="block text-xs font-semibold text-gray-400 mb-2 font-rajdhani uppercase tracking-wider">Select Client</label>
               <select
                 value={selectedClientId || ""}
                 onChange={(e) => setSelectedClientId(parseInt(e.target.value) || null)}
-                className="w-full md:w-80 px-3 py-2 bg-gray-800 border border-gold/30 rounded text-white font-rajdhani"
+                className="w-full md:w-80 px-3 py-2 bg-gray-800 border border-gold/30 rounded-lg text-white font-rajdhani"
               >
                 <option value="">Choose a client...</option>
                 {clients.map((c: any) => (
@@ -522,13 +564,13 @@ export default function PhotoProgressPage() {
             </div>
             {selectedClientId && (
               <div>
-                <label className="block text-sm font-semibold text-gray-300 mb-2 font-rajdhani">Session Notes</label>
+                <label className="block text-xs font-semibold text-gray-400 mb-2 font-rajdhani uppercase tracking-wider">Session Notes</label>
                 <input
                   type="text"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="e.g., Week 4 check-in, post-cut..."
-                  className="w-full md:w-80 px-3 py-2 bg-gray-800 border border-gold/30 rounded text-white font-rajdhani"
+                  className="w-full md:w-80 px-3 py-2 bg-gray-800 border border-gold/30 rounded-lg text-white font-rajdhani"
                 />
               </div>
             )}
@@ -537,7 +579,7 @@ export default function PhotoProgressPage() {
 
         {selectedClientId ? (
           <>
-            {/* Monthly compliance summary */}
+            {/* 6-month compliance strip */}
             {photoSets && (() => {
               const months: { month: string; status: "complete" | "incomplete" | "missing" }[] = [];
               const now = new Date();
@@ -553,20 +595,20 @@ export default function PhotoProgressPage() {
                 else months.push({ month: monthLabel, status: "incomplete" });
               }
               return (
-                <div className="bg-gray-900/50 rounded-lg border border-gold/10 p-4 mb-6">
-                  <h4 className="font-oswald text-sm text-gold uppercase mb-3">6-Month Compliance</h4>
+                <div className="bg-gray-900/50 rounded-xl border border-gold/10 p-4 mb-6">
+                  <h4 className="font-oswald text-xs text-gold uppercase tracking-widest mb-3">6-Month Compliance</h4>
                   <div className="flex gap-2">
                     {months.map(m => (
                       <div key={m.month} className="flex-1 text-center">
-                        <div className={`w-full h-2 rounded-full mb-1 ${
+                        <div className={`w-full h-1.5 rounded-full mb-1 ${
                           m.status === "complete" ? "bg-green-500" :
-                          m.status === "incomplete" ? "bg-yellow-500" : "bg-red-500/50"
+                          m.status === "incomplete" ? "bg-yellow-500" : "bg-red-500/40"
                         }`} />
-                        <p className="text-[10px] font-rajdhani text-gray-400">{m.month}</p>
+                        <p className="text-[10px] font-rajdhani text-gray-500">{m.month}</p>
                         <p className={`text-[9px] font-rajdhani font-semibold ${
                           m.status === "complete" ? "text-green-400" :
-                          m.status === "incomplete" ? "text-yellow-400" : "text-red-400"
-                        }`}>{m.status === "complete" ? "Complete" : m.status === "incomplete" ? "Incomplete" : "Missing"}</p>
+                          m.status === "incomplete" ? "text-yellow-400" : "text-red-500"
+                        }`}>{m.status === "complete" ? "✓" : m.status === "incomplete" ? "Partial" : "—"}</p>
                       </div>
                     ))}
                   </div>
@@ -584,10 +626,10 @@ export default function PhotoProgressPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-5 py-2.5 rounded font-oswald uppercase text-sm tracking-wide transition-colors ${
+                  className={`px-5 py-2.5 rounded-lg font-oswald uppercase text-sm tracking-wide transition-colors ${
                     activeTab === tab.id
                       ? "bg-gold text-black"
-                      : "bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gold/20"
+                      : "bg-gray-900 text-gray-400 hover:bg-gray-800 border border-gold/20"
                   }`}
                 >
                   {tab.label}
@@ -598,12 +640,12 @@ export default function PhotoProgressPage() {
             {/* Upload tab */}
             {activeTab === "upload" && (
               <div>
-                {/* Instructions */}
-                <div className="bg-gray-900/50 rounded-lg border border-gold/10 p-4 mb-6">
-                  <h3 className="font-oswald text-gold uppercase text-sm mb-2">Photo Guidelines</h3>
-                  <ul className="text-gray-400 text-sm space-y-1 font-rajdhani">
+                {/* Photo guidelines */}
+                <div className="bg-gray-900/50 rounded-xl border border-gold/10 p-4 mb-6">
+                  <h3 className="font-oswald text-gold uppercase text-xs tracking-widest mb-2">Photo Guidelines</h3>
+                  <ul className="text-gray-500 text-sm space-y-1 font-rajdhani">
                     <li>• Wear as little clothing as you are comfortable with for accurate tracking</li>
-                    <li>• Use consistent lighting and background for each session</li>
+                    <li>• Use consistent lighting and background each session</li>
                     <li>• Align your body with the gold silhouette guide for consistent positioning</li>
                     <li>• Capture all 4 poses (front, back, left side, right side) for a complete set</li>
                     <li>• Minimum 1 complete photo set per month required</li>
@@ -620,18 +662,18 @@ export default function PhotoProgressPage() {
                   const capturedPoses = currentSet ? currentSet.photos.map((p: any) => p.pose) : [];
                   const allPoses: Pose[] = ["front", "back", "left_side", "right_side"];
                   return (
-                    <div className="bg-gray-900/50 rounded-lg border border-gold/10 p-4 mb-4">
+                    <div className="bg-gray-900/50 rounded-xl border border-gold/10 p-4 mb-4">
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-oswald text-sm text-gold uppercase">This Month's Set</h4>
-                        <span className={`text-xs font-rajdhani font-semibold px-2 py-0.5 rounded ${
+                        <h4 className="font-oswald text-xs text-gold uppercase tracking-widest">This Month's Set</h4>
+                        <span className={`text-xs font-rajdhani font-semibold px-2 py-0.5 rounded-full ${
                           capturedPoses.length >= 4 ? "bg-green-600/20 text-green-400" : "bg-yellow-600/20 text-yellow-400"
                         }`}>
-                          {capturedPoses.length}/4 Poses Complete
+                          {capturedPoses.length}/4 Poses
                         </span>
                       </div>
-                      <div className="flex gap-3">
+                      <div className="flex gap-2">
                         {allPoses.map(pose => (
-                          <div key={pose} className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-rajdhani ${
+                          <div key={pose} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-rajdhani ${
                             capturedPoses.includes(pose)
                               ? "bg-green-900/30 text-green-400 border border-green-600/30"
                               : "bg-gray-800 text-gray-500 border border-gray-700"
@@ -670,9 +712,9 @@ export default function PhotoProgressPage() {
             )}
           </>
         ) : (
-          <div className="bg-gray-900 rounded-lg border border-gold/20 p-12 text-center">
-            <div className="text-gold text-5xl mb-4 opacity-30">📸</div>
-            <p className="text-gray-400 font-rajdhani text-lg">
+          <div className="bg-gray-900 rounded-xl border border-gold/20 p-12 text-center">
+            <div className="text-gold text-5xl mb-4 opacity-20">📸</div>
+            <p className="text-gray-500 font-rajdhani text-lg">
               Select a client above to start capturing progress photos
             </p>
           </div>

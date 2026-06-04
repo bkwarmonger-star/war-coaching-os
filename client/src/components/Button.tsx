@@ -8,32 +8,32 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ variant = 'primary', size = 'md', className = '', ...props }, ref) => {
-    const baseStyles = 'font-oswald font-bold uppercase tracking-wider transition-all duration-150 rounded cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
+    const baseStyles = 'font-oswald font-bold uppercase tracking-widest transition-all duration-150 rounded-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95';
 
     const variantStyles = {
       primary: {
         backgroundColor: 'var(--gold)',
         color: '#000',
         border: 'none',
-        hover: 'hover:bg-[var(--gold-bright)] active:scale-95',
+        hover: 'hover:brightness-110',
       },
       secondary: {
         backgroundColor: 'var(--surface2)',
         color: 'var(--white)',
-        border: '1px solid var(--border)',
-        hover: 'hover:bg-surface3 active:scale-95',
+        border: '1px solid var(--border-gold)',
+        hover: 'hover:border-gold hover:brightness-110',
       },
       outline: {
         backgroundColor: 'transparent',
         color: 'var(--muted)',
         border: '1px solid var(--border)',
-        hover: 'hover:border-gold hover:text-gold active:scale-95',
+        hover: 'hover:border-gold hover:text-gold',
       },
       danger: {
         backgroundColor: 'var(--red)',
         color: '#fff',
         border: 'none',
-        hover: 'hover:bg-[var(--red-dim)] active:scale-95',
+        hover: 'hover:brightness-110',
       },
     };
 

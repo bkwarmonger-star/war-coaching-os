@@ -55,7 +55,7 @@ export default function BrandPage() {
                     borderColor: "var(--border)",
                     color: "var(--white)",
                   }}
-                  className="border rounded px-4 py-3 font-rajdhani w-full"
+                  className="border px-4 py-3 font-rajdhani w-full"
                   rows={4}
                 />
               </div>
@@ -74,7 +74,7 @@ export default function BrandPage() {
                     borderColor: "var(--border)",
                     color: "var(--white)",
                   }}
-                  className="border rounded px-4 py-2 font-rajdhani w-full"
+                  className="border px-4 py-2 font-rajdhani w-full"
                 />
               </div>
 
@@ -92,7 +92,7 @@ export default function BrandPage() {
                     borderColor: "var(--border)",
                     color: "var(--white)",
                   }}
-                  className="border rounded px-4 py-2 font-rajdhani w-full"
+                  className="border px-4 py-2 font-rajdhani w-full"
                 />
               </div>
 

@@ -15,7 +15,7 @@
     --white: #f5f5f5;
     --muted: #888;
     --border: #2a2a2a;
-    --border-gold: rgba(201, 168, 76, 0.25);
+    --border-gold: rgba(201, 168, 76, 0.2);
     --success: #2db36d;
     --warn: #e8943a;
   }
@@ -55,8 +55,8 @@
 
   /* Scrollbar styling */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
@@ -74,14 +74,15 @@
 }
 
 @layer components {
-  /* Stat card styling */
+  /* Stat card — used on Dashboard and Revenue */
   .stat-card {
     position: relative;
     overflow: hidden;
-    border-radius: 0.375rem;
-    border: 1px solid var(--border);
-    padding: 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-gold);
+    padding: 1.25rem;
     background-color: var(--surface);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   }
 
   .stat-card::before {
@@ -89,99 +90,102 @@
     left: 0;
     right: 0;
     top: 0;
-    height: 2px;
+    height: 3px;
     content: '';
   }
 
   .stat-card.gold::before {
-    background-color: var(--gold);
+    background: linear-gradient(90deg, var(--gold), var(--gold-bright));
   }
 
   .stat-card.red::before {
-    background-color: var(--red);
+    background: linear-gradient(90deg, var(--red), #e05a56);
   }
 
   .stat-card.green::before {
-    background-color: var(--success);
+    background: linear-gradient(90deg, var(--success), #3ed47e);
   }
 
   .stat-card.warn::before {
-    background-color: var(--warn);
+    background: linear-gradient(90deg, var(--warn), #f0a84c);
   }
 
-  /* Tag styling */
+  /* Tag / badge */
   .tag {
     display: inline-block;
-    border-radius: 0.375rem;
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
-    font-weight: bold;
+    border-radius: 9999px;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.7rem;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     border: 1px solid;
+    line-height: 1.4;
   }
 
   .tag-gold {
-    border-color: rgba(201, 168, 76, 0.3);
-    background-color: rgba(201, 168, 76, 0.15);
+    border-color: rgba(201, 168, 76, 0.35);
+    background-color: rgba(201, 168, 76, 0.12);
     color: var(--gold);
   }
 
   .tag-red {
-    border-color: rgba(185, 43, 39, 0.3);
-    background-color: rgba(185, 43, 39, 0.15);
+    border-color: rgba(185, 43, 39, 0.35);
+    background-color: rgba(185, 43, 39, 0.12);
     color: var(--red);
   }
 
   .tag-green {
-    border-color: rgba(45, 179, 109, 0.3);
-    background-color: rgba(45, 179, 109, 0.15);
+    border-color: rgba(45, 179, 109, 0.35);
+    background-color: rgba(45, 179, 109, 0.12);
     color: var(--success);
   }
 
   .tag-blue {
-    border-color: rgba(59, 130, 246, 0.3);
-    background-color: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.35);
+    background-color: rgba(59, 130, 246, 0.12);
     color: #60a5fa;
   }
 
   .tag-gray {
-    border-color: rgba(136, 136, 136, 0.2);
+    border-color: rgba(136, 136, 136, 0.25);
     background-color: rgba(136, 136, 136, 0.1);
     color: var(--muted);
   }
 
   /* Progress bar */
   .progress-bar {
-    height: 0.25rem;
+    height: 0.375rem;
     width: 100%;
     overflow: hidden;
-    border-radius: 0.125rem;
+    border-radius: 9999px;
     background-color: var(--surface3);
   }
 
   .progress-fill {
     height: 100%;
-    border-radius: 0.125rem;
-    transition: all 300ms ease;
-    background-color: var(--gold);
+    border-radius: 9999px;
+    transition: width 400ms ease;
+    background: linear-gradient(90deg, var(--gold-dim), var(--gold));
   }
 
   .progress-fill.red {
-    background-color: var(--red);
+    background: linear-gradient(90deg, var(--red-dim), var(--red));
   }
 
   .progress-fill.green {
-    background-color: var(--success);
+    background: linear-gradient(90deg, #1a7a44, var(--success));
   }
 
   /* Spinner */
   .spinner {
     display: inline-block;
-    height: 1rem;
-    width: 1rem;
-    animation: spin 1s linear infinite;
+    height: 1.25rem;
+    width: 1.25rem;
+    animation: spin 0.8s linear infinite;
     border-radius: 9999px;
-    border: 2px solid rgba(201, 168, 76, 0.3);
+    border: 2px solid rgba(201, 168, 76, 0.2);
     border-top-color: var(--gold);
   }
 
@@ -193,7 +197,7 @@
 
   /* Loading skeleton */
   .skeleton {
-    border-radius: 0.375rem;
+    border-radius: 0.5rem;
     background-color: var(--surface3);
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
@@ -204,32 +208,47 @@
       opacity: 1;
     }
     50% {
-      opacity: 0.5;
+      opacity: 0.45;
     }
   }
 
-  /* Alert styling */
+  /* Alert items */
   .alert-item {
     display: flex;
     gap: 0.75rem;
-    border-radius: 0.375rem;
-    border-left: 4px solid;
-    padding: 0.75rem;
+    border-radius: 0.5rem;
+    border-left: 3px solid;
+    padding: 0.75rem 1rem;
   }
 
   .alert-item.danger {
     border-left-color: var(--red);
-    background-color: rgba(185, 43, 39, 0.1);
+    background-color: rgba(185, 43, 39, 0.08);
   }
 
   .alert-item.warn {
     border-left-color: var(--warn);
-    background-color: rgba(232, 148, 58, 0.1);
+    background-color: rgba(232, 148, 58, 0.08);
   }
 
   .alert-item.info {
     border-left-color: var(--gold);
-    background-color: rgba(201, 168, 76, 0.1);
+    background-color: rgba(201, 168, 76, 0.08);
+  }
+
+  /* Global form field polish — in @layer components to safely override preflight's border-radius: 0 */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    border-radius: 0.5rem;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+    border-color: rgba(201, 168, 76, 0.55) !important;
+    box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.07);
   }
 
   /* Smooth transitions */
@@ -263,7 +282,7 @@
 
   .glass {
     backdrop-filter: blur(12px);
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.05);
   }
 
   .gold-text {
@@ -284,6 +303,6 @@
   }
 
   .card-shadow {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   }
 }

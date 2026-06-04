@@ -64,7 +64,7 @@ export default function SchedulingPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani"
+                    className="border px-4 py-2.5 font-rajdhani"
                     required
                   />
                   <input
@@ -76,7 +76,7 @@ export default function SchedulingPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani"
+                    className="border px-4 py-2.5 font-rajdhani"
                     required
                   />
                   <input
@@ -88,7 +88,7 @@ export default function SchedulingPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani"
+                    className="border px-4 py-2.5 font-rajdhani"
                     required
                   />
                   <select
@@ -99,7 +99,7 @@ export default function SchedulingPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani"
+                    className="border px-4 py-2.5 font-rajdhani"
                   >
                     <option value="in-person">In-Person</option>
                     <option value="online">Online</option>
@@ -114,7 +114,7 @@ export default function SchedulingPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani col-span-2"
+                    className="border px-4 py-2.5 font-rajdhani col-span-2"
                   />
                 </div>
                 <Button variant="primary" type="submit" className="w-full">
