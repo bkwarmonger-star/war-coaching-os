@@ -162,6 +162,81 @@ async function startServer() {
     }
   });
   
+  // PDF Download endpoints
+  app.get("/api/export/workout/:programId", async (req, res) => {
+    try {
+      const programId = parseInt(req.params.programId);
+      if (isNaN(programId)) return res.status(400).json({ error: "Invalid program ID" });
+      
+      const { getDb } = await import("../db");
+      const { programs } = await import("../../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      const { generateWorkoutPDF } = await import("../pdfGenerator");
+      
+      const db = await getDb();
+      if (!db) return res.status(500).json({ error: "Database unavailable" });
+      
+      const result = await db.select().from(programs).where(eq(programs.id, programId)).limit(1);
+      if (result.length === 0) return res.status(404).json({ error: "Program not found" });
+      
+      const programData = result[0];
+      const content = typeof programData.content === "string" ? JSON.parse(programData.content) : programData.content;
+      
+      const pdfStream = generateWorkoutPDF({
+        name: programData.name,
+        description: programData.description || "",
+        programType: programData.programType,
+        duration: programData.duration || 0,
+        exercises: content?.exercises || [],
+        meals: content?.meals || [],
+      });
+      
+      const filename = `${programData.name.replace(/\s+/g, "_")}_workout.pdf`;
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      
+      pdfStream.pipe(res);
+    } catch (error) {
+      console.error("Workout PDF generation error:", error);
+      res.status(500).json({ error: "Failed to generate PDF" });
+    }
+  });
+  
+  app.get("/api/export/meal-plan/:programId", async (req, res) => {
+    try {
+      const programId = parseInt(req.params.programId);
+      if (isNaN(programId)) return res.status(400).json({ error: "Invalid program ID" });
+      
+      const { getDb } = await import("../db");
+      const { programs } = await import("../../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      const { generateMealPlanPDF } = await import("../pdfGenerator");
+      
+      const db = await getDb();
+      if (!db) return res.status(500).json({ error: "Database unavailable" });
+      
+      const result = await db.select().from(programs).where(eq(programs.id, programId)).limit(1);
+      if (result.length === 0) return res.status(404).json({ error: "Program not found" });
+      
+      const programData = result[0];
+      const content = typeof programData.content === "string" ? JSON.parse(programData.content) : programData.content;
+      
+      const pdfStream = generateMealPlanPDF(
+        content?.meals || [],
+        programData.name
+      );
+      
+      const filename = `${programData.name.replace(/\s+/g, "_")}_meal_plan.pdf`;
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      
+      pdfStream.pipe(res);
+    } catch (error) {
+      console.error("Meal plan PDF generation error:", error);
+      res.status(500).json({ error: "Failed to generate PDF" });
+    }
+  });
+  
   // tRPC API
   app.use(
     "/api/trpc",

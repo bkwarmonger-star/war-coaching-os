@@ -33,6 +33,7 @@ import { clients, programs, checkIns, messages, sessions, packages, subscription
 import { eq, and, desc, gte } from "drizzle-orm";
 import { InsertClient } from "../drizzle/schema";
 import { invokeLLM } from "./_core/llm";
+import { generateWorkoutPDF, generateMealPlanPDF } from "./pdfGenerator";
 
 export const appRouter = router({
   system: systemRouter,
@@ -1036,6 +1037,70 @@ Return as JSON with structure: {
           programs: assignedPrograms,
           checkIns: recentCheckIns,
         };
+      }),
+  }),
+
+  // PDF Export
+  export: router({
+    downloadWorkout: protectedProcedure
+      .input(z.object({ programId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        
+        const program = await db
+          .select()
+          .from(programs)
+          .where(eq(programs.id, input.programId))
+          .limit(1);
+        
+        if (program.length === 0) throw new Error("Program not found");
+        const programData = program[0];
+        
+        // Parse content
+        const content = typeof programData.content === "string" 
+          ? JSON.parse(programData.content) 
+          : programData.content;
+        
+        const pdfStream = generateWorkoutPDF({
+          name: programData.name,
+          description: programData.description || "",
+          programType: programData.programType,
+          duration: programData.duration || 0,
+          exercises: content?.exercises || [],
+          meals: content?.meals || [],
+        });
+        
+        // Return base64 encoded PDF for tRPC compatibility
+        return { success: true, filename: `${programData.name.replace(/\s+/g, "_")}_workout.pdf` };
+      }),
+    
+    downloadMealPlan: protectedProcedure
+      .input(z.object({ programId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        
+        const program = await db
+          .select()
+          .from(programs)
+          .where(eq(programs.id, input.programId))
+          .limit(1);
+        
+        if (program.length === 0) throw new Error("Program not found");
+        const programData = program[0];
+        
+        // Parse content
+        const content = typeof programData.content === "string" 
+          ? JSON.parse(programData.content) 
+          : programData.content;
+        
+        const pdfStream = generateMealPlanPDF(
+          content?.meals || [],
+          programData.name
+        );
+        
+        return { pdfStream, filename: `${programData.name.replace(/\s+/g, "_")}_meal_plan.pdf` };
       }),
   }),
 });

@@ -163,15 +163,37 @@ export default function ProgramDetailPage() {
     <div style={{ backgroundColor: "var(--black)", color: "var(--white)" }} className="min-h-screen p-8">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
-          <h1 className="font-bebas text-4xl" style={{ color: "var(--gold)", letterSpacing: "0.1em" }}>
-            {program.name}
-          </h1>
-          <p style={{ color: "var(--muted)" }} className="text-sm mt-2">
-            {program.description}
-          </p>
-          <p style={{ color: "var(--muted)" }} className="text-sm mt-1">
-            Type: {program.programType} | Duration: {program.duration} weeks
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="font-bebas text-4xl" style={{ color: "var(--gold)", letterSpacing: "0.1em" }}>
+                {program.name}
+              </h1>
+              <p style={{ color: "var(--muted)" }} className="text-sm mt-2">
+                {program.description}
+              </p>
+              <p style={{ color: "var(--muted)" }} className="text-sm mt-1">
+                Type: {program.programType} | Duration: {program.duration} weeks
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <a
+                href={`/api/export/workout/${program.id}`}
+                download
+                className="px-4 py-2 font-rajdhani font-bold rounded hover:opacity-90 transition"
+                style={{ backgroundColor: "var(--gold)", color: "var(--black)" }}
+              >
+                📥 Workout PDF
+              </a>
+              <a
+                href={`/api/export/meal-plan/${program.id}`}
+                download
+                className="px-4 py-2 font-rajdhani font-bold rounded hover:opacity-90 transition"
+                style={{ backgroundColor: "var(--gold)", color: "var(--black)" }}
+              >
+                📥 Meal Plan PDF
+              </a>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-8">
