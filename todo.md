@@ -202,7 +202,7 @@
 ## Phase 23: Critical Bug Fixes - Exercise & Meal Generators
 - [x] Exercise addition not working in ProgramDetailPage - FIXED: improved error handling and data validation
 - [x] Exercise generator not accessible or not functioning - FIXED: API tested and working
-- [x] Meal generator not working properly - FIXED: API tested and working
+- [x] Meal generator not working properly - FIXED: JSON parsing issue (LLM returns markdown code blocks), now strips ```json``` wrappers before parsing
 
 ## Phase 24: Sentry Cleanup
 - [x] Removed Sentry imports from server/index.ts

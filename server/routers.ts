@@ -394,8 +394,10 @@ Return as JSON with structure: { weeks: [{ day: string, exercises: [{ name, sets
         })
       )
       .mutation(async ({ ctx, input }) => {
-        const trainer = await getTrainerByUserId(ctx.user.id);
-        if (!trainer) throw new Error("Trainer profile not found");
+        try {
+          console.log("[Meal Plan] Starting with input:", { clientId: input.clientId, calories: input.dailyCalories });
+          const trainer = await getTrainerByUserId(ctx.user.id);
+          if (!trainer) throw new Error("Trainer profile not found");
 
         const prompt = `Create a detailed ${input.duration}-day meal plan for ${input.dailyCalories} calories per day.
 
@@ -415,23 +417,34 @@ Return as JSON with structure: {
   shoppingList: [{ item, quantity, category }]
 }`;
 
+        console.log("[Meal Plan] Invoking LLM...");
         const response = await invokeLLM({
           messages: [
             { role: "system", content: "You are an expert nutritionist creating personalized meal plans. Always return valid JSON." },
             { role: "user", content: prompt },
           ],
         });
+        console.log("[Meal Plan] LLM response received");
 
         let mealPlanContent;
         try {
           const content = response.choices[0]?.message?.content;
-          const contentStr = typeof content === 'string' ? content : JSON.stringify(content);
+          let contentStr = typeof content === 'string' ? content : JSON.stringify(content);
+          // Strip markdown code blocks if present
+          contentStr = contentStr.replace(/^```json\s*/, '').replace(/\s*```$/, '');
           mealPlanContent = JSON.parse(contentStr || "{}");
-        } catch {
+          console.log("[Meal Plan] Successfully parsed meal plan");
+        } catch (parseError) {
+          console.error("[Meal Plan] Parse error:", parseError);
           mealPlanContent = { error: "Failed to parse meal plan", raw: response.choices[0]?.message?.content };
         }
 
+        console.log("[Meal Plan] Returning success");
         return { success: true, mealPlan: mealPlanContent };
+        } catch (error) {
+          console.error("[Meal Plan] Error:", error);
+          throw error;
+        }
       }),
   }),
 

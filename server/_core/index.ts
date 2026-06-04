@@ -105,12 +105,24 @@ async function startServer() {
     try {
       const { prompt } = req.body;
       if (!prompt) return res.status(400).json({ error: "Prompt required" });
+      
+      console.log("[Nutrition Generator] Starting with prompt:", prompt.substring(0, 50));
       const { generateNutrition } = await import("../generators");
       const result = await generateNutrition(prompt);
+      
+      if (!result || !result.meals) {
+        console.error("[Nutrition Generator] Invalid response:", result);
+        return res.status(500).json({ error: "Invalid response from generator" });
+      }
+      
+      console.log("[Nutrition Generator] Success, returning", result.meals.length, "meals");
       res.json(result);
     } catch (error) {
-      console.error("Nutrition generation error:", error);
-      res.status(500).json({ error: "Failed to generate nutrition" });
+      console.error("[Nutrition Generator] Error:", error instanceof Error ? error.message : error);
+      if (error instanceof Error) {
+        console.error("[Nutrition Generator] Stack:", error.stack);
+      }
+      res.status(500).json({ error: error instanceof Error ? error.message : "Failed to generate nutrition" });
     }
   });
   
