@@ -182,17 +182,17 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
-        const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || ""))
+        const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).execute()
         if (client.length === 0) throw new Error("Client profile not found. Contact your trainer.");
 
         // Get or auto-create template
         let templateId = 0;
-        let tRows = await db.select().from(formTemplates).where(eq(formTemplates.slug, input.formSlug))
+        let tRows = await db.select().from(formTemplates).where(eq(formTemplates.slug, input.formSlug)).execute()
         if (tRows.length === 0) {
           const formDef = ISSA_FORMS.find(f => f.slug === input.formSlug);
           if (formDef) {
             await db.insert(formTemplates).values({ slug: formDef.slug, name: formDef.name, description: formDef.description, category: formDef.category, fields: JSON.stringify(formDef.fields), isClientFacing: formDef.isClientFacing, isRequired: formDef.isRequired, sortOrder: formDef.sortOrder }).catch(() => {});
-            tRows = await db.select().from(formTemplates).where(eq(formTemplates.slug, input.formSlug))
+            tRows = await db.select().from(formTemplates).where(eq(formTemplates.slug, input.formSlug)).execute()
           }
         }
         if (tRows.length > 0) templateId = tRows[0].id;
@@ -226,16 +226,16 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
-        const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || ""))
+        const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).execute()
         if (client.length === 0) throw new Error("Client profile not found. Contact your trainer.");
 
         let templateId = 0;
-        let tRows = await db.select().from(formTemplates).where(eq(formTemplates.slug, input.formSlug))
+        let tRows = await db.select().from(formTemplates).where(eq(formTemplates.slug, input.formSlug)).execute()
         if (tRows.length === 0) {
           const formDef = ISSA_FORMS.find(f => f.slug === input.formSlug);
           if (formDef) {
             await db.insert(formTemplates).values({ slug: formDef.slug, name: formDef.name, description: formDef.description, category: formDef.category, fields: JSON.stringify(formDef.fields), isClientFacing: formDef.isClientFacing, isRequired: formDef.isRequired, sortOrder: formDef.sortOrder }).catch(() => {});
-            tRows = await db.select().from(formTemplates).where(eq(formTemplates.slug, input.formSlug))
+            tRows = await db.select().from(formTemplates).where(eq(formTemplates.slug, input.formSlug)).execute()
           }
         }
         if (tRows.length > 0) templateId = tRows[0].id;
@@ -268,7 +268,7 @@ export const appRouter = router({
     getMySubmissions: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
-      const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || ""))
+      const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).execute()
       if (client.length === 0) return [];
       return await db.select().from(formSubmissions).where(eq(formSubmissions.clientId, client[0].id)).orderBy(desc(formSubmissions.updatedAt));
     }),
@@ -1175,14 +1175,14 @@ Return as JSON with structure: {
     getMyProfile: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return null;
-      const result = await db.select().from(clients).where(eq(clients.email, ctx.user.email || ""))
+      const result = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).execute()
       return result.length > 0 ? result[0] : null;
     }),
     // Get my assigned programs
     getMyPrograms: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
-      const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || ""))
+      const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).execute()
       if (client.length === 0) return [];
       return await db.select().from(programs).where(eq(programs.clientId, client[0].id)).orderBy(desc(programs.createdAt));
     }),
@@ -1190,7 +1190,7 @@ Return as JSON with structure: {
     getMyMealPlans: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
-      const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || ""))
+      const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).execute()
       if (client.length === 0) return [];
       return await db.select().from(programs).where(and(eq(programs.clientId, client[0].id), eq(programs.programType, "nutrition"))).orderBy(desc(programs.createdAt));
     }),
@@ -1198,7 +1198,7 @@ Return as JSON with structure: {
     getMyCheckIns: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
-      const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || ""))
+      const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).execute()
       if (client.length === 0) return [];
       return await db.select().from(checkIns).where(eq(checkIns.clientId, client[0].id)).orderBy(desc(checkIns.createdAt));
     }),
@@ -1213,7 +1213,7 @@ Return as JSON with structure: {
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
-        const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || ""))
+        const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).execute()
         if (client.length === 0) throw new Error("Client profile not found. Contact your trainer.");
         const result = await db.insert(checkIns).values({
           clientId: client[0].id,
@@ -1230,7 +1230,7 @@ Return as JSON with structure: {
     getMyMessages: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
-      const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || ""))
+      const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).execute()
       if (client.length === 0) return [];
       return await db.select().from(messages).where(eq(messages.clientId, client[0].id)).orderBy(messages.createdAt);
     }),
@@ -1240,7 +1240,7 @@ Return as JSON with structure: {
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
-        const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || ""))
+        const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).execute()
         if (client.length === 0) throw new Error("Client profile not found. Contact your trainer.");
         const result = await db.insert(messages).values({
           trainerId: client[0].trainerId,
@@ -1255,7 +1255,7 @@ Return as JSON with structure: {
     getMyProgress: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
-      const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || ""))
+      const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).execute()
       if (client.length === 0) return [];
       return await db.select().from(progressMetrics).where(eq(progressMetrics.clientId, client[0].id)).orderBy(desc(progressMetrics.createdAt));
     }),
@@ -1263,7 +1263,7 @@ Return as JSON with structure: {
     getMySessions: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
-      const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || ""))
+      const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).execute()
       if (client.length === 0) return [];
       return await db.select().from(sessions).where(and(eq(sessions.clientId, client[0].id), gte(sessions.startTime, new Date()))).orderBy(sessions.startTime);
     }),
@@ -1282,7 +1282,7 @@ Return as JSON with structure: {
         if (buffer.length === 0) throw new Error("Invalid photo data");
         // Enforce 10MB limit server-side
         if (buffer.length > 10 * 1024 * 1024) throw new Error("Photo exceeds 10MB size limit");
-        const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || ""))
+        const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).execute()
         if (client.length === 0) throw new Error("Client profile not found. Contact your trainer.");
         const { storagePut } = await import("./storage");
         const timestamp = Date.now();
