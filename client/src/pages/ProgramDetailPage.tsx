@@ -67,8 +67,21 @@ export default function ProgramDetailPage() {
     if (programData) {
       setProgram(programData);
       const content = typeof programData.content === "string" ? JSON.parse(programData.content) : programData.content;
-      setExercises(content?.exercises || []);
-      setMeals(content?.meals || []);
+      
+      // Normalize exercises to ensure all have unique IDs
+      const normalizedExercises = (content?.exercises || []).map((ex: any, idx: number) => ({
+        ...ex,
+        id: ex.id || `ex-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 9)}`,
+      }));
+      
+      // Normalize meals to ensure all have unique IDs
+      const normalizedMeals = (content?.meals || []).map((meal: any, idx: number) => ({
+        ...meal,
+        id: meal.id || `meal-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 9)}`,
+      }));
+      
+      setExercises(normalizedExercises);
+      setMeals(normalizedMeals);
     }
   }, [programData]);
 
@@ -80,7 +93,8 @@ export default function ProgramDetailPage() {
       saveProgram(updatedExercises, meals);
       setEditingExerciseId(undefined);
     } else {
-      const updatedExercises = [...exercises, { ...newExercise, id: Date.now().toString() }];
+      const uniqueId = `ex-${Date.now()}-${exercises.length}-${Math.random().toString(36).substr(2, 9)}`;
+      const updatedExercises = [...exercises, { ...newExercise, id: uniqueId }];
       setExercises(updatedExercises);
       saveProgram(updatedExercises, meals);
     }
@@ -108,7 +122,8 @@ export default function ProgramDetailPage() {
       saveProgram(exercises, updatedMeals);
       setEditingMealId(undefined);
     } else {
-      const updatedMeals = [...meals, { ...newMeal, id: Date.now().toString() }];
+      const uniqueId = `meal-${Date.now()}-${meals.length}-${Math.random().toString(36).substr(2, 9)}`;
+      const updatedMeals = [...meals, { ...newMeal, id: uniqueId }];
       setMeals(updatedMeals);
       saveProgram(exercises, updatedMeals);
     }
