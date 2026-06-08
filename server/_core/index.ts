@@ -267,6 +267,7 @@ async function startServer() {
       const { users, clients, localAuth } = await import("../../drizzle/schema");
       const { eq } = await import("drizzle-orm");
       const bcrypt = await import("bcryptjs");
+      const { getDefaultTrainer } = await import("../db");
       
       // Check if email already exists
       const existingUser = await db.select().from(users).where(eq(users.email, email));
@@ -299,9 +300,21 @@ async function startServer() {
         createdAt: new Date(),
       });
       
-      // Create client profile (trainerId is required; for self-registered clients, use a default trainer ID or the user's own trainer ID)
+      // Get default trainer for self-registered clients
+      let trainerId: number;
+      try {
+        const defaultTrainer = await getDefaultTrainer();
+        trainerId = defaultTrainer.id;
+      } catch (trainerError) {
+        console.error("[Signup] No trainers available:", trainerError);
+        return res.status(503).json({ 
+          message: "Service temporarily unavailable. No trainers are currently available to accept new clients. Please try again later." 
+        });
+      }
+      
+      // Create client profile
       await db.insert(clients).values({
-        trainerId: 1, // Default trainer ID for self-registered clients
+        trainerId,
         name,
         email,
         phone: phone || null,

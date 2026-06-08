@@ -121,6 +121,29 @@ export async function getTrainerByUserId(userId: number) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+export async function getDefaultTrainer() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Try to get trainer with ID 1 first (primary default)
+  const primaryTrainer = await db.select().from(trainers).where(eq(trainers.id, 1)).limit(1);
+  if (primaryTrainer.length > 0) {
+    return primaryTrainer[0];
+  }
+
+  // If no trainer with ID 1, get the first available trainer
+  const firstTrainer = await db.select().from(trainers).limit(1);
+  if (firstTrainer.length > 0) {
+    console.warn("[getDefaultTrainer] Primary trainer (ID 1) not found, using first available trainer (ID " + firstTrainer[0].id + ")");
+    return firstTrainer[0];
+  }
+
+  // No trainers exist - this is a critical error
+  const errorMsg = "No trainers found in the system. At least one trainer account must exist before clients can be registered.";
+  console.error("[getDefaultTrainer] " + errorMsg);
+  throw new Error(errorMsg);
+}
+
 // Client queries
 export async function getClientsByTrainer(trainerId: number, limit: number = 100, offset: number = 0) {
   const db = await getDb();
