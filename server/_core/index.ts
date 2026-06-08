@@ -247,6 +247,75 @@ async function startServer() {
     }
   });
   
+  // Client signup endpoint
+  app.post("/api/auth/signup", signupLimiter, async (req, res) => {
+    try {
+      const { name, email, password, phone, age } = req.body;
+      
+      // Validate input
+      if (!name || !email || !password) {
+        return res.status(400).json({ message: "Name, email, and password are required" });
+      }
+      
+      if (password.length < 8) {
+        return res.status(400).json({ message: "Password must be at least 8 characters" });
+      }
+      
+      const db = await getDb();
+      if (!db) return res.status(500).json({ message: "Database unavailable" });
+      
+      const { users, clients, localAuth } = await import("../../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      const bcrypt = await import("bcryptjs");
+      
+      // Check if email already exists
+      const existingUser = await db.select().from(users).where(eq(users.email, email));
+      if (existingUser.length > 0) {
+        return res.status(409).json({ message: "Email already registered" });
+      }
+      
+      // Hash password
+      const hashedPassword = await bcrypt.default.hash(password, 10);
+      
+      // Create user
+      const newUserResult = await db.insert(users).values({
+        email,
+        name,
+        role: "user",
+        emailVerified: false,
+        loginMethod: "local",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      
+      const userId = (newUserResult as any).insertId || (newUserResult as any)[0]?.id;
+      
+      // Create local auth record
+      await db.insert(localAuth).values({
+        userId: userId as number,
+        email,
+        passwordHash: hashedPassword,
+        createdAt: new Date(),
+      });
+      
+      // Create client profile
+      await db.insert(clients).values({
+        userId: userId as number,
+        name,
+        email,
+        phone: phone || null,
+        age: age ? Number(age) : null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      
+      res.status(201).json({ message: "Account created successfully", userId });
+    } catch (error) {
+      console.error("Signup error:", error);
+      res.status(500).json({ message: "Failed to create account" });
+    }
+  });
+  
   // tRPC API
   app.use(
     "/api/trpc",

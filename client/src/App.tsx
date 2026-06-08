@@ -22,6 +22,7 @@ import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import SignupPage from "@/pages/SignupPage";
 import TrainerFormsPage from "@/pages/TrainerFormsPage";
 import AnalyticsDashboard from "@/pages/AnalyticsDashboard";
 import AiCoachPage from "@/pages/AiCoachPage";
@@ -32,7 +33,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { Navigation } from "./components/Navigation";
 
-const BARE_ROUTES = ["/login", "/register", "/forgot-password", "/reset-password", "/ai-coach"];
+const BARE_ROUTES = ["/login", "/register", "/signup", "/forgot-password", "/reset-password", "/ai-coach"];
 
 function Router() {
   return (
@@ -40,6 +41,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/login" component={LoginPage} />
       <Route path="/register" component={RegisterPage} />
+      <Route path="/signup" component={SignupPage} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/clients" component={ClientsPage} />
