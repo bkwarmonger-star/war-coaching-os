@@ -54,7 +54,7 @@ import {
   habitTemplates, habitEntries,
   achievements, achievementUnlocks,
   clientRiskScores, aiSummaries, weeklyCoachSummaries,
-  groceryLists, foodSubstitutions,
+  groceryLists, foodSubstitutions, payments,
 } from "../drizzle/schema";
 import { eq, and, desc, gte, lt, lte, isNull, isNotNull, like, sql, ne, inArray } from "drizzle-orm";
 import { InsertClient } from "../drizzle/schema";
@@ -83,7 +83,9 @@ Stats: ${totalClients} active clients, ${Number(atRisk[0]?.count ?? 0)} at risk,
 Return JSON: {"summary":"2-3 sentence narrative","highlights":["string"],"actions":["actionable item"]}`;
   const resp = await invokeLLM({ messages: [{ role: "system", content: "You are a business coach. Return valid JSON only." }, { role: "user", content: prompt }] });
   let content: any = {};
-  try { content = JSON.parse(resp.choices[0]?.message?.content ?? "{}"); } catch { content = { summary: resp.choices[0]?.message?.content }; }
+  const msgContent = resp.choices[0]?.message?.content;
+  const contentStr = typeof msgContent === 'string' ? msgContent : (Array.isArray(msgContent) && msgContent.length > 0 && 'text' in msgContent[0] ? (msgContent[0] as any).text ?? '{}' : '{}');
+  try { content = JSON.parse(contentStr); } catch { content = { summary: contentStr }; }
   // Upsert: update this week's row if it already exists, otherwise insert
   const existingSummary = await db.select({ id: weeklyCoachSummaries.id })
     .from(weeklyCoachSummaries)
@@ -321,7 +323,7 @@ export const appRouter = router({
     saveDraft: protectedProcedure
       .input(z.object({
         formSlug: z.string(),
-        responses: z.record(z.any()),
+        responses: z.record(z.string(), z.any()),
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
@@ -365,7 +367,7 @@ export const appRouter = router({
     submit: protectedProcedure
       .input(z.object({
         formSlug: z.string(),
-        responses: z.record(z.any()),
+        responses: z.record(z.string(), z.any()),
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
@@ -1995,7 +1997,9 @@ Return as JSON with structure: {
 Meals: ${JSON.stringify(meals).slice(0, 3000)}`;
         const response = await invokeLLM({ messages: [{ role: "system", content: "You extract grocery lists from meal plans. Return valid JSON only." }, { role: "user", content: prompt }] });
         let items: any[] = [];
-        try { items = JSON.parse(response.choices[0]?.message?.content ?? "[]"); } catch { items = []; }
+        const respContent = response.choices[0]?.message?.content;
+        const respStr = typeof respContent === 'string' ? respContent : (Array.isArray(respContent) && respContent.length > 0 && 'text' in respContent[0] ? (respContent[0] as any).text ?? '[]' : '[]');
+        try { items = JSON.parse(respStr); } catch { items = []; }
         const result = await db.insert(groceryLists).values({ programId: input.programId, clientId: program.clientId ?? 0, trainerId: trainer.id, items: JSON.stringify(items), weekStartDate: input.weekStartDate });
         return { id: (result as any).insertId, items };
       }),
@@ -2103,7 +2107,8 @@ Weight history: ${weights}
 Return JSON: {"summary":"2-3 sentences","concerns":["string"],"recommendations":["string"],"progressNote":"positive note for client"}`;
       const resp = await invokeLLM({ messages: [{ role: "system", content: "You are an expert fitness coach. Return valid JSON only." }, { role: "user", content: prompt }] });
       let analysis: any = {};
-      try { analysis = JSON.parse(resp.choices[0]?.message?.content ?? "{}"); } catch { analysis = { summary: resp.choices[0]?.message?.content, concerns: [], recommendations: [] }; }
+      const respContent = typeof resp.choices[0]?.message?.content === 'string' ? resp.choices[0].message.content : JSON.stringify(resp.choices[0]?.message?.content ?? "{}");
+      try { analysis = JSON.parse(respContent); } catch { analysis = { summary: respContent, concerns: [], recommendations: [] }; }
       await db.insert(aiSummaries).values({ clientId: ci.clientId, trainerId: trainer.id, summaryType: "check_in", content: JSON.stringify(analysis), sourceId: ci.id });
       await db.update(checkIns).set({ aiAnalysis: analysis.progressNote ?? "" }).where(eq(checkIns.id, ci.id));
       return analysis;
@@ -2123,7 +2128,8 @@ Current program: ${program.name}. Recent check-ins: ${weightTrend}
 Return JSON: {"weeklyAdjustments":["string"],"loadIncreases":["exercise: change"],"exerciseChanges":["swap or modify"],"rationale":"string"}`;
       const resp = await invokeLLM({ messages: [{ role: "system", content: "You are an expert strength coach. Return valid JSON only." }, { role: "user", content: prompt }] });
       let progression: any = {};
-      try { progression = JSON.parse(resp.choices[0]?.message?.content ?? "{}"); } catch { progression = { rationale: resp.choices[0]?.message?.content }; }
+      const respContent = typeof resp.choices[0]?.message?.content === 'string' ? resp.choices[0].message.content : JSON.stringify(resp.choices[0]?.message?.content ?? "{}");
+      try { progression = JSON.parse(respContent); } catch { progression = { rationale: respContent }; }
       await db.insert(aiSummaries).values({ clientId: input.clientId, trainerId: (await getTrainerByUserId(ctx.user.id))!.id, summaryType: "program_progression", content: JSON.stringify(progression), sourceId: input.currentProgramId });
       return progression;
     }),

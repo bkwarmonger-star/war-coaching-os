@@ -41,7 +41,7 @@ export function getTypingStatus(trainerId: number, clientId: number) {
 // Periodic cleanup of stale entries
 setInterval(() => {
   const now = Date.now();
-  for (const [k, rec] of store.entries()) {
+  for (const [k, rec] of Array.from(store.entries())) {
     if (now - rec.trainerTyping > TYPING_TTL_MS) rec.trainerTyping = 0;
     if (now - rec.clientTyping > TYPING_TTL_MS) rec.clientTyping = 0;
     if (rec.trainerTyping === 0 && rec.clientTyping === 0) store.delete(k);

@@ -209,3 +209,20 @@
 - [x] Removed Sentry imports from client/main.tsx
 - [x] Deleted unused Sentry files (client/src/_core/sentry.tsx, server/_core/sentry.ts)
 - [x] Dev server now starts cleanly with zero TypeScript errors
+
+## Phase 25: TypeScript Error Resolution & Production Build
+- [x] Fix LLM response type handling (string vs array content) - FIXED in routers.ts and AiCoachPage.tsx
+- [x] Fix signup endpoint user insert (add openId field) - FIXED in server/_core/index.ts
+- [x] Fix signup endpoint client insert (add trainerId field) - FIXED in server/_core/index.ts
+- [x] Fix z.record() validation schemas (add key type) - FIXED at lines 324 and 368 in routers.ts
+- [x] Fix MapIterator iteration issues (enable downlevelIteration) - FIXED using Array.from() in rateLimiter.ts and typingStore.ts
+- [x] Fix ClientsPage email null safety - FIXED with optional chaining
+- [x] Run `pnpm build` and verify zero TypeScript errors - BUILD SUCCESSFUL
+- [x] Verify production build compiles successfully - ALL 35 TESTS PASSING
+
+## Phase 26: Signup Endpoint Production Hardening
+- [ ] Replace hardcoded trainerId: 1 with configurable default trainer strategy
+- [ ] Add validation to ensure default trainer exists before client creation
+- [ ] Add unit tests for signup endpoint (user creation, local auth, client profile)
+- [ ] Test signup flow end-to-end in browser
+- [ ] Verify database emailVerified column exists and is properly handled

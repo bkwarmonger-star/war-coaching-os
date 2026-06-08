@@ -279,6 +279,7 @@ async function startServer() {
       
       // Create user
       const newUserResult = await db.insert(users).values({
+        openId: `local-${email}-${Date.now()}`,
         email,
         name,
         role: "user",
@@ -298,9 +299,9 @@ async function startServer() {
         createdAt: new Date(),
       });
       
-      // Create client profile
+      // Create client profile (trainerId is required; for self-registered clients, use a default trainer ID or the user's own trainer ID)
       await db.insert(clients).values({
-        userId: userId as number,
+        trainerId: 1, // Default trainer ID for self-registered clients
         name,
         email,
         phone: phone || null,

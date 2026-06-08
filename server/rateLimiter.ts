@@ -36,8 +36,8 @@ function createLimiter(opts: { windowMs: number; max: number; message?: string }
 // Cleanup old entries every 5 minutes
 setInterval(() => {
   const now = Date.now();
-  for (const store of stores.values()) {
-    for (const [key, rec] of store.entries()) {
+  for (const store of Array.from(stores.values())) {
+    for (const [key, rec] of Array.from(store.entries())) {
       if (rec.resetAt <= now) store.delete(key);
     }
   }

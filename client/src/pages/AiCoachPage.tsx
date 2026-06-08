@@ -9,7 +9,7 @@ const QUICK_PROMPTS = [
   "Generate 5 motivational check-in follow-up messages",
 ];
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = { role: "user" | "assistant"; content: string | any[] };
 
 export default function AiCoachPage() {
   const { user, loading } = useAuth();
@@ -32,10 +32,11 @@ export default function AiCoachPage() {
   const { data: clientsData } = trpc.clients.list.useQuery({ limit: 100, offset: 0 });
   const assistantMutation = trpc.aiCoach.assistant.useMutation({
     onSuccess: (data) => {
-      setMessages(prev => [...prev, { role: "assistant", content: data.response }]);
+      const respContent = typeof data.response === 'string' ? data.response : (Array.isArray(data.response) && data.response.length > 0 && 'text' in data.response[0] ? (data.response[0] as any).text ?? '' : '');
+      setMessages(prev => [...prev, { role: "assistant", content: respContent }]);
     },
     onError: (e) => {
-      setMessages(prev => [...prev, { role: "assistant", content: `Error: ${e.message}` }]);
+      setMessages(prev => [...prev, { role: "assistant", content: `Error: ${e.message}` as string }]);
     },
   });
 

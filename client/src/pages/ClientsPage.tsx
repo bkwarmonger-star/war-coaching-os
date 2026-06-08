@@ -34,7 +34,7 @@ export default function ClientsPage() {
       const matchesSearch =
         !normalizedSearch ||
         client.name.toLowerCase().includes(normalizedSearch) ||
-        client.email.toLowerCase().includes(normalizedSearch) ||
+        (client.email?.toLowerCase().includes(normalizedSearch) ?? false) ||
         client.fitnessLevel?.toLowerCase().includes(normalizedSearch);
       const matchesType = trainingTypeFilter === "all" || client.trainingType === trainingTypeFilter;
 
