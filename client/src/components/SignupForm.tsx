@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 
 interface SignupFormProps {
   onSuccess?: () => void;
 }
 
 export function SignupForm({ onSuccess }: SignupFormProps) {
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -78,7 +78,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
         if (onSuccess) {
           onSuccess();
         } else {
-          navigate("/login");
+          setLocation("/login");
         }
       }, 2000);
     } catch (err) {
