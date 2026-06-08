@@ -1,9 +1,9 @@
-import { useAuth } from "@/_core/hooks/useAuth";
 import type React from "react";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/Button";
 import { Card, CardHeader, CardBody } from "@/components/Card";
+import { useAuth } from "@/_core/hooks/useAuth";
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -22,24 +22,26 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 
-  const { data: trainerProfile, isLoading: trainerLoading } = trpc.trainer.getProfile.useQuery();
+  const { data: trainerProfile, isLoading: trainerLoading } = trpc.trainer.getProfile.useQuery(undefined, {
+    enabled: !!user,
+  });
 
   const { data: clientsData } = trpc.clients.list.useQuery(
     { limit: 100, offset: 0 },
-    { enabled: !!trainerProfile }
+    { enabled: !!user && !!trainerProfile }
   );
 
   const { data: upcomingSessions } = trpc.sessions.getUpcoming.useQuery(undefined, {
-    enabled: !!trainerProfile,
+    enabled: !!user && !!trainerProfile,
   });
 
   const { data: pendingCheckIns } = trpc.checkIns.getPending.useQuery(undefined, {
-    enabled: !!trainerProfile,
+    enabled: !!user && !!trainerProfile,
   });
 
   const { data: revenueData } = trpc.revenue.getMonthlyRevenue.useQuery(
     { month: new Date() },
-    { enabled: !!trainerProfile }
+    { enabled: !!user && !!trainerProfile }
   );
 
   if (!user) {
