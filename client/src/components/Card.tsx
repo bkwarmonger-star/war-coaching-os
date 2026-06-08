@@ -16,7 +16,7 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
           borderWidth: bordered ? '1px' : '0',
           boxShadow: '0 4px 20px rgba(0,0,0,0.45)',
         }}
-        className={`rounded-xl overflow-hidden ${className}`}
+        className={`rounded-lg overflow-hidden ${className}`}
         {...props}
       />
     );

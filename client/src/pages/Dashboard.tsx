@@ -1,53 +1,69 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import type React from "react";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
-import { useState } from "react";
 import { Button } from "@/components/Button";
 import { Card, CardHeader, CardBody } from "@/components/Card";
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  CalendarDays,
+  ClipboardCheck,
+  DollarSign,
+  Dumbbell,
+  Info,
+  Plus,
+  Users,
+  Utensils,
+} from "lucide-react";
+import { Link, useLocation } from "wouter";
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [selectedClient, setSelectedClient] = useState<number | null>(null);
+  const [, setLocation] = useLocation();
 
-  // Fetch trainer profile
   const { data: trainerProfile, isLoading: trainerLoading } = trpc.trainer.getProfile.useQuery();
 
-  // Fetch clients list
-  const { data: clientsData, isLoading: clientsLoading } = trpc.clients.list.useQuery(
+  const { data: clientsData } = trpc.clients.list.useQuery(
     { limit: 100, offset: 0 },
     { enabled: !!trainerProfile }
   );
 
-  // Fetch upcoming sessions
   const { data: upcomingSessions } = trpc.sessions.getUpcoming.useQuery(undefined, {
     enabled: !!trainerProfile,
   });
 
-  // Fetch pending check-ins
   const { data: pendingCheckIns } = trpc.checkIns.getPending.useQuery(undefined, {
     enabled: !!trainerProfile,
   });
 
-  // Fetch monthly revenue
   const { data: revenueData } = trpc.revenue.getMonthlyRevenue.useQuery(
     { month: new Date() },
     { enabled: !!trainerProfile }
   );
 
-  // Show landing page for unauthenticated users
   if (!user) {
     return (
-      <div style={{ backgroundColor: "var(--black)", color: "var(--white)" }} className="min-h-screen flex flex-col items-center justify-center p-8">
-        <h1 className="font-bebas text-6xl mb-4" style={{ color: "var(--gold)", letterSpacing: "0.1em" }}>W.A.R. COACHING</h1>
-        <p className="font-oswald text-xl mb-2" style={{ color: "var(--white)" }}>WATSON ATHLETIC READINESS</p>
+      <div
+        style={{ backgroundColor: "var(--black)", color: "var(--white)" }}
+        className="min-h-screen flex flex-col items-center justify-center p-8"
+      >
+        <h1
+          className="font-bebas text-6xl mb-4 text-center"
+          style={{ color: "var(--gold)", letterSpacing: "0.1em" }}
+        >
+          W.A.R. COACHING
+        </h1>
+        <p className="font-oswald text-xl mb-2 text-center" style={{ color: "var(--white)" }}>
+          WATSON ATHLETIC READINESS
+        </p>
         <p className="font-rajdhani text-lg mb-8 max-w-xl text-center" style={{ color: "var(--muted)" }}>
-          Elite personal training by Justin Watson — BKFC professional fighter, ISSA certified trainer.
-          Custom exercise programs, nutrition plans, and 1-on-1 coaching.
+          Elite personal training by Justin Watson, BKFC professional fighter and ISSA certified trainer.
         </p>
         <a
           href={getLoginUrl()}
           style={{ backgroundColor: "var(--gold)", color: "#000" }}
-          className="px-8 py-3 rounded-xl font-oswald text-lg uppercase tracking-widest hover:brightness-110 transition-all"
+          className="px-8 py-3 rounded-lg font-oswald text-lg uppercase tracking-widest hover:brightness-110 transition-all"
         >
           Get Started
         </a>
@@ -58,139 +74,114 @@ export default function Dashboard() {
   if (trainerLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen" style={{ backgroundColor: "var(--black)" }}>
-        <div className="spinner"></div>
+        <div className="spinner" />
       </div>
     );
   }
 
-  const activeClients = clientsData?.clients?.length || 0;
+  const clients = clientsData?.clients ?? [];
+  const activeClients = clients.length;
   const monthlyRevenue = revenueData?.revenue || 0;
   const incomeGoal = revenueData?.goal ? parseFloat(revenueData.goal.toString()) : 0;
-  const revenueProgress = incomeGoal > 0 ? (monthlyRevenue / incomeGoal) * 100 : 0;
+  const revenueProgress = incomeGoal > 0 ? Math.min((monthlyRevenue / incomeGoal) * 100, 100) : 0;
   const pendingCheckInsCount = pendingCheckIns?.length || 0;
   const upcomingSessionsCount = upcomingSessions?.length || 0;
 
   return (
-    <div style={{ backgroundColor: "var(--black)", color: "var(--white)" }} className="min-h-screen p-8">
+    <div style={{ backgroundColor: "var(--black)", color: "var(--white)" }} className="min-h-screen p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="font-bebas text-4xl mb-2" style={{ color: "var(--gold)", letterSpacing: "0.1em" }}>
-            DASHBOARD
-          </h1>
-          <p className="font-rajdhani text-sm" style={{ color: "var(--muted)" }}>
-            Welcome back, {user?.name}
-          </p>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-4 gap-4 mb-8">
-          {/* Active Clients */}
-          <div className="stat-card gold">
-            <div className="font-oswald text-xs uppercase tracking-widest" style={{ color: "var(--muted)" }}>
-              Active Clients
-            </div>
-            <div className="font-bebas text-4xl mt-2" style={{ color: "var(--white)", letterSpacing: "0.05em" }}>
-              {activeClients}
-            </div>
-            <div className="font-rajdhani text-sm mt-2" style={{ color: "var(--success)" }}>
-              ▲ {activeClients > 0 ? "+1" : "0"} this month
-            </div>
+        <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h1
+              className="font-bebas text-4xl md:text-5xl mb-2"
+              style={{ color: "var(--gold)", letterSpacing: "0.1em" }}
+            >
+              TRAINER COMMAND
+            </h1>
+            <p className="font-rajdhani text-sm" style={{ color: "var(--muted)" }}>
+              Welcome back, {user.name}
+            </p>
           </div>
-
-          {/* Monthly Revenue */}
-          <div className="stat-card green">
-            <div className="font-oswald text-xs uppercase tracking-widest" style={{ color: "var(--muted)" }}>
-              Monthly Revenue
-            </div>
-            <div className="font-bebas text-4xl mt-2" style={{ color: "var(--white)", letterSpacing: "0.05em" }}>
-              ${monthlyRevenue.toFixed(0)}
-            </div>
-            <div className="font-rajdhani text-sm mt-2" style={{ color: "var(--success)" }}>
-              ▲ +${(monthlyRevenue * 0.22).toFixed(0)} vs last month
-            </div>
-          </div>
-
-          {/* Check-Ins Pending */}
-          <div className="stat-card red">
-            <div className="font-oswald text-xs uppercase tracking-widest" style={{ color: "var(--muted)" }}>
-              Check-Ins Pending
-            </div>
-            <div className="font-bebas text-4xl mt-2" style={{ color: "var(--white)", letterSpacing: "0.05em" }}>
-              {pendingCheckInsCount}
-            </div>
-            <div className="font-rajdhani text-sm mt-2" style={{ color: "var(--red)" }}>
-              ▼ Needs review today
-            </div>
-          </div>
-
-          {/* Upcoming Sessions */}
-          <div className="stat-card warn">
-            <div className="font-oswald text-xs uppercase tracking-widest" style={{ color: "var(--muted)" }}>
-              Sessions This Week
-            </div>
-            <div className="font-bebas text-4xl mt-2" style={{ color: "var(--white)", letterSpacing: "0.05em" }}>
-              {upcomingSessionsCount}
-            </div>
-            <div className="font-rajdhani text-sm mt-2" style={{ color: "var(--success)" }}>
-              ▲ On track (+2)
-            </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="primary" onClick={() => setLocation("/clients")}>
+              <span className="inline-flex items-center gap-2">
+                <Plus size={15} /> New Client
+              </span>
+            </Button>
+            <Button variant="secondary" onClick={() => setLocation("/scheduling")}>
+              <span className="inline-flex items-center gap-2">
+                <CalendarDays size={15} /> Schedule
+              </span>
+            </Button>
           </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-3 gap-6">
-          {/* Left Column */}
-          <div className="col-span-2 space-y-6">
-            {/* Clients Table */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+          <StatCard
+            tone="gold"
+            label="Active Clients"
+            value={activeClients}
+            helper={`${activeClients > 0 ? "+1" : "0"} this month`}
+            icon={<Users size={18} style={{ color: "var(--gold)" }} />}
+          />
+          <StatCard
+            tone="green"
+            label="Monthly Revenue"
+            value={`$${monthlyRevenue.toFixed(0)}`}
+            helper={`+$${(monthlyRevenue * 0.22).toFixed(0)} vs last month`}
+            icon={<DollarSign size={18} style={{ color: "var(--success)" }} />}
+          />
+          <StatCard
+            tone="red"
+            label="Check-Ins Pending"
+            value={pendingCheckInsCount}
+            helper="Needs review today"
+            icon={<ClipboardCheck size={18} style={{ color: "var(--red)" }} />}
+            danger
+          />
+          <StatCard
+            tone="warn"
+            label="Sessions This Week"
+            value={upcomingSessionsCount}
+            helper="On track (+2)"
+            icon={<CalendarDays size={18} style={{ color: "var(--warn)" }} />}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="xl:col-span-2 space-y-6">
             <Card>
               <CardHeader className="flex items-center justify-between">
                 <h2 className="font-bebas text-xl" style={{ color: "var(--white)", letterSpacing: "0.05em" }}>
                   ACTIVE CLIENTS
                 </h2>
-                <div className="font-oswald text-xs uppercase cursor-pointer" style={{ color: "var(--gold)" }}>
-                  View All
-                </div>
+                <Link
+                  href="/clients"
+                  className="flex items-center gap-1 font-oswald text-xs uppercase cursor-pointer"
+                  style={{ color: "var(--gold)" }}
+                >
+                  View All <ArrowUpRight size={14} />
+                </Link>
               </CardHeader>
               <CardBody className="p-0">
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr style={{ borderBottomColor: "var(--border)" }} className="border-b">
-                        <th
-                          className="px-6 py-3 text-left font-oswald text-xs uppercase tracking-wider"
-                          style={{ color: "var(--muted)" }}
-                        >
-                          Client
-                        </th>
-                        <th
-                          className="px-6 py-3 text-left font-oswald text-xs uppercase tracking-wider"
-                          style={{ color: "var(--muted)" }}
-                        >
-                          Type
-                        </th>
-                        <th
-                          className="px-6 py-3 text-left font-oswald text-xs uppercase tracking-wider"
-                          style={{ color: "var(--muted)" }}
-                        >
-                          Progress
-                        </th>
-                        <th
-                          className="px-6 py-3 text-left font-oswald text-xs uppercase tracking-wider"
-                          style={{ color: "var(--muted)" }}
-                        >
-                          Status
-                        </th>
+                        <TableHead>Client</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Progress</TableHead>
+                        <TableHead>Status</TableHead>
                       </tr>
                     </thead>
                     <tbody>
-                      {clientsData?.clients && clientsData.clients.length > 0 ? (
-                        clientsData.clients.slice(0, 5).map((client) => (
+                      {clients.length > 0 ? (
+                        clients.slice(0, 5).map((client) => (
                           <tr
                             key={client.id}
-                                  className="border-b transition-colors cursor-pointer hover:brightness-110"
+                            className="table-row-hover border-b transition-colors cursor-pointer"
                             style={{ borderBottomColor: "rgba(255,255,255,0.04)" }}
-                            onClick={() => setSelectedClient(client.id)}
+                            onClick={() => setLocation(`/clients/${client.id}`)}
                           >
                             <td className="px-6 py-4">
                               <div className="font-oswald font-semibold" style={{ color: "var(--white)" }}>
@@ -203,9 +194,9 @@ export default function Dashboard() {
                             <td className="px-6 py-4 font-rajdhani text-sm" style={{ color: "var(--muted)" }}>
                               <span className="tag tag-gold">{client.trainingType || "N/A"}</span>
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-6 py-4 min-w-36">
                               <div className="progress-bar">
-                                <div className="progress-fill" style={{ width: "65%" }}></div>
+                                <div className="progress-fill" style={{ width: "65%" }} />
                               </div>
                             </td>
                             <td className="px-6 py-4">
@@ -215,7 +206,7 @@ export default function Dashboard() {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={4} className="px-6 py-8 text-center">
+                          <td colSpan={4} className="px-6 py-10 text-center">
                             <p className="font-rajdhani" style={{ color: "var(--muted)" }}>
                               No clients yet. Create your first client to get started.
                             </p>
@@ -228,28 +219,20 @@ export default function Dashboard() {
               </CardBody>
             </Card>
 
-            {/* Income Goal Ring */}
             <Card>
               <CardBody>
-                <div className="flex items-center gap-6">
+                <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
                   <div className="flex-shrink-0">
-                    <svg width="80" height="80" viewBox="0 0 80 80" className="transform -rotate-90">
+                    <svg width="92" height="92" viewBox="0 0 92 92" className="transform -rotate-90">
+                      <circle cx="46" cy="46" r="40" fill="none" stroke="var(--surface3)" strokeWidth="6" />
                       <circle
-                        cx="40"
-                        cy="40"
-                        r="36"
-                        fill="none"
-                        stroke="var(--surface3)"
-                        strokeWidth="4"
-                      />
-                      <circle
-                        cx="40"
-                        cy="40"
-                        r="36"
+                        cx="46"
+                        cy="46"
+                        r="40"
                         fill="none"
                         stroke="var(--gold)"
-                        strokeWidth="4"
-                        strokeDasharray={`${2 * Math.PI * 36 * (revenueProgress / 100)} ${2 * Math.PI * 36}`}
+                        strokeWidth="6"
+                        strokeDasharray={`${2 * Math.PI * 40 * (revenueProgress / 100)} ${2 * Math.PI * 40}`}
                         strokeLinecap="round"
                       />
                     </svg>
@@ -258,7 +241,10 @@ export default function Dashboard() {
                     <div className="font-oswald text-xs uppercase tracking-widest" style={{ color: "var(--muted)" }}>
                       Income Goal Progress
                     </div>
-                    <div className="font-bebas text-3xl mt-2" style={{ color: "var(--white)", letterSpacing: "0.05em" }}>
+                    <div
+                      className="font-bebas text-3xl mt-2"
+                      style={{ color: "var(--white)", letterSpacing: "0.05em" }}
+                    >
                       ${monthlyRevenue.toFixed(0)}
                     </div>
                     <div className="font-rajdhani text-sm mt-1" style={{ color: "var(--gold)" }}>
@@ -270,9 +256,7 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          {/* Right Column */}
           <div className="space-y-6">
-            {/* Today's Schedule */}
             <Card>
               <CardHeader>
                 <h3 className="font-bebas text-lg" style={{ color: "var(--white)", letterSpacing: "0.05em" }}>
@@ -282,13 +266,15 @@ export default function Dashboard() {
               <CardBody className="space-y-2 max-h-64 overflow-y-auto p-4">
                 {upcomingSessions && upcomingSessions.length > 0 ? (
                   upcomingSessions.slice(0, 4).map((session) => (
-                    <div
+                    <button
                       key={session.id}
-                      className="p-3 rounded border hover:border-gold transition-colors cursor-pointer"
+                      type="button"
+                      className="w-full p-3 rounded-lg border text-left transition-colors"
                       style={{
                         backgroundColor: "var(--surface2)",
                         borderColor: "var(--border)",
                       }}
+                      onClick={() => setLocation("/scheduling")}
                     >
                       <div className="font-oswald font-bold text-sm" style={{ color: "var(--gold)" }}>
                         {new Date(session.startTime).toLocaleTimeString([], {
@@ -302,7 +288,7 @@ export default function Dashboard() {
                       <div className="font-rajdhani text-xs mt-1" style={{ color: "var(--muted)" }}>
                         {session.sessionType}
                       </div>
-                    </div>
+                    </button>
                   ))
                 ) : (
                   <div className="text-center py-8">
@@ -314,7 +300,6 @@ export default function Dashboard() {
               </CardBody>
             </Card>
 
-            {/* Quick Actions */}
             <Card>
               <CardHeader>
                 <h3 className="font-bebas text-lg" style={{ color: "var(--white)", letterSpacing: "0.05em" }}>
@@ -322,19 +307,22 @@ export default function Dashboard() {
                 </h3>
               </CardHeader>
               <CardBody className="space-y-2">
-                <Button variant="primary" className="w-full">
-                  + New Client
+                <Button variant="primary" className="w-full" onClick={() => setLocation("/clients")}>
+                  <span className="inline-flex items-center justify-center gap-2">
+                    <Plus size={15} /> New Client
+                  </span>
                 </Button>
-                <Button variant="outline" className="w-full">
-                  Generate Program
-                </Button>
-                <Button variant="outline" className="w-full">
-                  Create Meal Plan
-                </Button>
+                <button type="button" className="action-tile" onClick={() => setLocation("/programs")}>
+                  <Dumbbell size={18} />
+                  <span className="font-oswald text-xs uppercase tracking-widest">Generate Program</span>
+                </button>
+                <button type="button" className="action-tile" onClick={() => setLocation("/meals")}>
+                  <Utensils size={18} />
+                  <span className="font-oswald text-xs uppercase tracking-widest">Create Meal Plan</span>
+                </button>
               </CardBody>
             </Card>
 
-            {/* Alerts */}
             <Card>
               <CardHeader>
                 <h3 className="font-bebas text-lg" style={{ color: "var(--white)", letterSpacing: "0.05em" }}>
@@ -344,7 +332,7 @@ export default function Dashboard() {
               <CardBody className="space-y-3">
                 {pendingCheckInsCount > 0 && (
                   <div className="alert-item danger">
-                    <div style={{ color: "var(--red)" }}>⚠</div>
+                    <AlertTriangle size={18} style={{ color: "var(--red)" }} />
                     <div>
                       <div className="font-oswald text-sm" style={{ color: "var(--white)" }}>
                         {pendingCheckInsCount} Check-In{pendingCheckInsCount !== 1 ? "s" : ""} Pending
@@ -356,7 +344,7 @@ export default function Dashboard() {
                   </div>
                 )}
                 <div className="alert-item info">
-                  <div style={{ color: "var(--gold)" }}>ℹ</div>
+                  <Info size={18} style={{ color: "var(--gold)" }} />
                   <div>
                     <div className="font-oswald text-sm" style={{ color: "var(--white)" }}>
                       Revenue Goal: {revenueProgress.toFixed(0)}% Complete
@@ -372,5 +360,46 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
+  );
+}
+
+function StatCard({
+  tone,
+  label,
+  value,
+  helper,
+  icon,
+  danger = false,
+}: {
+  tone: "gold" | "green" | "red" | "warn";
+  label: string;
+  value: string | number;
+  helper: string;
+  icon: React.ReactNode;
+  danger?: boolean;
+}) {
+  return (
+    <div className={`stat-card ${tone}`}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="font-oswald text-xs uppercase tracking-widest" style={{ color: "var(--muted)" }}>
+          {label}
+        </div>
+        {icon}
+      </div>
+      <div className="font-bebas text-4xl mt-2" style={{ color: "var(--white)", letterSpacing: "0.05em" }}>
+        {value}
+      </div>
+      <div className="font-rajdhani text-sm mt-2" style={{ color: danger ? "var(--red)" : "var(--success)" }}>
+        {helper}
+      </div>
+    </div>
+  );
+}
+
+function TableHead({ children }: { children: React.ReactNode }) {
+  return (
+    <th className="px-6 py-3 text-left font-oswald text-xs uppercase tracking-wider" style={{ color: "var(--muted)" }}>
+      {children}
+    </th>
   );
 }

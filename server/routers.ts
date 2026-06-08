@@ -3,8 +3,20 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
+import { randomBytes } from "crypto";
+import { parse as parseCookieHeader } from "cookie";
+
+function getCurrentSessionToken(req: { headers: { cookie?: string } }): string | undefined {
+  const parsed = parseCookieHeader(req.headers.cookie || "");
+  return parsed[COOKIE_NAME];
+}
 import { hashPassword, verifyPassword } from "./passwordUtils";
 import { ISSA_FORMS } from "./issaForms";
+import { logAudit } from "./auditLogger";
+import { sendPasswordResetEmail, sendVerificationEmail } from "./emailService";
+import { sendPushToUser } from "./pushService";
+import { notifyNewMessage } from "./messageNotify";
+import { setTyping as setTypingStore, getTypingStatus as getTypingStatusStore } from "./typingStore";
 import {
   getUserByOpenId,
   upsertUser,
@@ -33,11 +45,63 @@ import {
   getTrainerConsultations,
   createProgressMetric,
 } from "./db";
-import { clients, programs, checkIns, messages, sessions, packages, subscriptions, leads, referrals, trainers, progressMetrics, consultations, localAuth, formTemplates, formSubmissions } from "../drizzle/schema";
-import { eq, and, desc, gte } from "drizzle-orm";
+import {
+  users, clients, programs, checkIns, messages, sessions, packages, subscriptions,
+  leads, referrals, trainers, progressMetrics, consultations, localAuth,
+  formTemplates, formSubmissions,
+  passwordResetTokens, emailVerificationTokens, activeSessions,
+  notifications, pushTokens,
+  habitTemplates, habitEntries,
+  achievements, achievementUnlocks,
+  clientRiskScores, aiSummaries, weeklyCoachSummaries,
+  groceryLists, foodSubstitutions,
+} from "../drizzle/schema";
+import { eq, and, desc, gte, lt, lte, isNull, isNotNull, like, sql, ne, inArray } from "drizzle-orm";
 import { InsertClient } from "../drizzle/schema";
 import { invokeLLM } from "./_core/llm";
 import { generateWorkoutPDF, generateMealPlanPDF } from "./pdfGenerator";
+
+/**
+ * Generates (or refreshes) the AI weekly coach summary for a given trainer's current week.
+ * Shared by the `aiCoach.generateWeeklySummary` tRPC mutation and the background scheduler
+ * (server/scheduler.ts) so both paths produce identical upsert behavior.
+ */
+export async function generateWeeklySummaryForTrainer(trainerId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const now = new Date();
+  const weekStart = new Date(now); weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1);
+  const weekStartStr = weekStart.toISOString().slice(0, 10);
+  const weekStartDate = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate());
+  const activeClients = await db.select({ count: sql<number>`count(*)` }).from(clients).where(and(eq(clients.trainerId, trainerId), eq(clients.status, "active")));
+  const newLeads = await db.select({ count: sql<number>`count(*)` }).from(leads).where(and(eq(leads.trainerId, trainerId), gte(leads.createdAt, weekStartDate)));
+  const weekCheckIns = await db.select({ count: sql<number>`count(*)` }).from(checkIns).where(and(eq(checkIns.trainerId, trainerId), gte(checkIns.createdAt, weekStartDate)));
+  const atRisk = await db.select({ count: sql<number>`count(*)` }).from(clientRiskScores).where(and(eq(clientRiskScores.trainerId, trainerId), ne(clientRiskScores.riskLevel, "low")));
+  const totalClients = Number(activeClients[0]?.count ?? 0);
+  const prompt = `Generate a Monday morning coach summary for W.A.R. Coaching.
+Stats: ${totalClients} active clients, ${Number(atRisk[0]?.count ?? 0)} at risk, ${Number(newLeads[0]?.count ?? 0)} new leads this week, ${Number(weekCheckIns[0]?.count ?? 0)} check-ins received.
+Return JSON: {"summary":"2-3 sentence narrative","highlights":["string"],"actions":["actionable item"]}`;
+  const resp = await invokeLLM({ messages: [{ role: "system", content: "You are a business coach. Return valid JSON only." }, { role: "user", content: prompt }] });
+  let content: any = {};
+  try { content = JSON.parse(resp.choices[0]?.message?.content ?? "{}"); } catch { content = { summary: resp.choices[0]?.message?.content }; }
+  // Upsert: update this week's row if it already exists, otherwise insert
+  const existingSummary = await db.select({ id: weeklyCoachSummaries.id })
+    .from(weeklyCoachSummaries)
+    .where(and(eq(weeklyCoachSummaries.trainerId, trainerId), eq(weeklyCoachSummaries.weekStartDate, weekStartStr)))
+    .limit(1);
+  const summaryPayload = {
+    trainerId, weekStartDate: weekStartStr, activeClients: totalClients,
+    atRiskClients: Number(atRisk[0]?.count ?? 0), newLeads: Number(newLeads[0]?.count ?? 0),
+    aiSummary: content.summary, highlights: JSON.stringify(content.highlights ?? []), actions: JSON.stringify(content.actions ?? []),
+  };
+  if (existingSummary.length > 0) {
+    await db.update(weeklyCoachSummaries).set({ aiSummary: content.summary, highlights: JSON.stringify(content.highlights ?? []), actions: JSON.stringify(content.actions ?? []) })
+      .where(eq(weeklyCoachSummaries.id, existingSummary[0].id));
+  } else {
+    await db.insert(weeklyCoachSummaries).values(summaryPayload);
+  }
+  return { ...content, weekStartDate: weekStartStr };
+}
 
 export const appRouter = router({
   system: systemRouter,
@@ -76,9 +140,28 @@ export const appRouter = router({
 
         // Issue session cookie
         const { sdk } = await import("./_core/sdk");
-        const token = await sdk.signSession({ openId, appId: "war-coaching-os", name: input.name });
+        const sessionToken = await sdk.signSession({ openId, appId: "war-coaching-os", name: input.name });
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+
+        // Track this session for the "manage devices" UI
+        await db.insert(activeSessions).values({
+          userId: user.id,
+          sessionToken,
+          deviceInfo: (ctx.req.headers["user-agent"] as string | undefined)?.slice(0, 255),
+          ipAddress: ctx.req.ip,
+          expiresAt: new Date(Date.now() + ONE_YEAR_MS),
+        }).catch(() => {}); // never block signup on session-tracking failure
+
+        // Send a verification email (best-effort — never blocks signup)
+        const verifyToken = randomBytes(32).toString("hex");
+        await db.insert(emailVerificationTokens).values({
+          userId: user.id,
+          token: verifyToken,
+          expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48 hours
+        }).catch(() => {});
+        await sendVerificationEmail(input.email.toLowerCase(), input.name, verifyToken);
+        await logAudit("client_register", { userId: user.id, ipAddress: ctx.req.ip });
 
         return { success: true, name: user.name };
       }),
@@ -107,12 +190,73 @@ export const appRouter = router({
 
         // Issue session cookie
         const { sdk } = await import("./_core/sdk");
-        const token = await sdk.signSession({ openId: user.openId, appId: "war-coaching-os", name: user.name || "" });
+        const sessionToken = await sdk.signSession({ openId: user.openId, appId: "war-coaching-os", name: user.name || "" });
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+
+        // Track this session for the "manage devices" UI
+        await db.insert(activeSessions).values({
+          userId: user.id,
+          sessionToken,
+          deviceInfo: (ctx.req.headers["user-agent"] as string | undefined)?.slice(0, 255),
+          ipAddress: ctx.req.ip,
+          expiresAt: new Date(Date.now() + ONE_YEAR_MS),
+        }).catch(() => {});
+        await logAudit("client_login", { userId: user.id, ipAddress: ctx.req.ip });
 
         return { success: true, name: user.name };
       }),
+
+    // ── Session management ("Manage Devices") ────────────────────────────────
+    getSessions: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const currentToken = getCurrentSessionToken(ctx.req);
+      const rows = await db.select().from(activeSessions)
+        .where(eq(activeSessions.userId, ctx.user.id))
+        .orderBy(desc(activeSessions.lastActiveAt));
+      return rows.map(r => ({
+        id: r.id,
+        deviceInfo: r.deviceInfo,
+        ipAddress: r.ipAddress,
+        lastActiveAt: r.lastActiveAt,
+        createdAt: r.createdAt,
+        expiresAt: r.expiresAt,
+        isCurrent: !!currentToken && r.sessionToken === currentToken,
+      }));
+    }),
+
+    revokeSession: protectedProcedure
+      .input(z.object({ sessionId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const rows = await db.select().from(activeSessions)
+          .where(and(eq(activeSessions.id, input.sessionId), eq(activeSessions.userId, ctx.user.id))).limit(1);
+        if (rows.length === 0) throw new Error("Session not found");
+        const currentToken = getCurrentSessionToken(ctx.req);
+        await db.delete(activeSessions).where(eq(activeSessions.id, input.sessionId));
+        await logAudit("session_revoked", { userId: ctx.user.id, entityType: "session", entityId: input.sessionId, ipAddress: ctx.req.ip });
+        // If revoking the session we're currently using, log the browser out too
+        if (currentToken && rows[0].sessionToken === currentToken) {
+          const cookieOptions = getSessionCookieOptions(ctx.req);
+          ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+        }
+        return { success: true };
+      }),
+
+    revokeAllSessions: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const currentToken = getCurrentSessionToken(ctx.req);
+      if (currentToken) {
+        await db.delete(activeSessions).where(and(eq(activeSessions.userId, ctx.user.id), ne(activeSessions.sessionToken, currentToken)));
+      } else {
+        await db.delete(activeSessions).where(eq(activeSessions.userId, ctx.user.id));
+      }
+      await logAudit("all_sessions_revoked", { userId: ctx.user.id, ipAddress: ctx.req.ip });
+      return { success: true };
+    }),
   }),
 
   // ── Forms Router ──────────────────────────────────────────────────────────
@@ -830,7 +974,121 @@ Return as JSON with structure: {
           isRead: false,
         });
 
+        // Notify the client (in-app + push + email), best-effort
+        const client = await getClientById(input.clientId);
+        if (client?.email) {
+          const recipientUser = await getUserByOpenId(`local:${client.email.toLowerCase()}`);
+          if (recipientUser) {
+            await notifyNewMessage({
+              recipientUserId: recipientUser.id,
+              trainerId: trainer.id,
+              fromName: ctx.user.name || "Your coach",
+              content: input.content,
+            });
+          }
+        }
+        setTypingStore(trainer.id, input.clientId, "trainer", false);
+
         return { success: true, messageId: (result as any).insertId };
+      }),
+
+    sendWithAttachment: protectedProcedure
+      .input(
+        z.object({
+          clientId: z.number(),
+          content: z.string().optional().default(""),
+          attachmentData: z.string(), // base64-encoded file content
+          attachmentName: z.string(),
+          attachmentType: z.string(), // MIME type
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+
+        const trainer = await getTrainerByUserId(ctx.user.id);
+        if (!trainer) throw new Error("Trainer profile not found");
+
+        const buffer = Buffer.from(input.attachmentData, "base64");
+        if (buffer.length === 0) throw new Error("Invalid attachment data");
+        if (buffer.length > 15 * 1024 * 1024) throw new Error("Attachment exceeds 15MB size limit");
+
+        const { storagePut } = await import("./storage");
+        const safeName = input.attachmentName.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const fileKey = `message-attachments/${trainer.id}/${input.clientId}/${Date.now()}_${safeName}`;
+        const { url } = await storagePut(fileKey, buffer, input.attachmentType || "application/octet-stream");
+
+        const messageContent = input.content?.trim() || `📎 Sent an attachment: ${input.attachmentName}`;
+        const result = await db.insert(messages).values({
+          trainerId: trainer.id,
+          clientId: input.clientId,
+          senderId: ctx.user.id,
+          content: messageContent,
+          isRead: false,
+          attachmentUrl: url,
+          attachmentType: input.attachmentType,
+          attachmentName: input.attachmentName,
+        });
+
+        const client = await getClientById(input.clientId);
+        if (client?.email) {
+          const recipientUser = await getUserByOpenId(`local:${client.email.toLowerCase()}`);
+          if (recipientUser) {
+            await notifyNewMessage({
+              recipientUserId: recipientUser.id,
+              trainerId: trainer.id,
+              fromName: ctx.user.name || "Your coach",
+              content: messageContent,
+            });
+          }
+        }
+        setTypingStore(trainer.id, input.clientId, "trainer", false);
+
+        return { success: true, messageId: (result as any).insertId, url };
+      }),
+
+    markThreadRead: protectedProcedure
+      .input(z.object({ clientId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        // Mark every message in this thread NOT sent by the current user as read.
+        // Works for both the trainer (marking client messages read) and the
+        // client (marking trainer messages read) — the thread is scoped by clientId.
+        await db.update(messages)
+          .set({ isRead: true, readAt: new Date() })
+          .where(and(
+            eq(messages.clientId, input.clientId),
+            ne(messages.senderId, ctx.user.id),
+            isNull(messages.readAt)
+          ));
+        return { success: true };
+      }),
+
+    setTyping: protectedProcedure
+      .input(z.object({ clientId: z.number(), isTyping: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
+        const trainer = await getTrainerByUserId(ctx.user.id);
+        if (trainer) {
+          setTypingStore(trainer.id, input.clientId, "trainer", input.isTyping);
+        } else {
+          const client = await getClientById(input.clientId);
+          if (client) setTypingStore(client.trainerId, client.id, "client", input.isTyping);
+        }
+        return { success: true };
+      }),
+
+    getTypingStatus: protectedProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const trainer = await getTrainerByUserId(ctx.user.id);
+        let trainerId: number | undefined = trainer?.id;
+        if (!trainerId) {
+          const client = await getClientById(input.clientId);
+          trainerId = client?.trainerId;
+        }
+        if (!trainerId) return { trainerTyping: false, clientTyping: false };
+        return getTypingStatusStore(trainerId, input.clientId);
       }),
   }),
 
@@ -1249,6 +1507,19 @@ Return as JSON with structure: {
           content: input.content,
           isRead: false,
         });
+
+        // Notify the trainer (in-app + push + email), best-effort
+        const trainerRows = await db.select().from(trainers).where(eq(trainers.id, client[0].trainerId)).limit(1);
+        if (trainerRows.length > 0) {
+          await notifyNewMessage({
+            recipientUserId: trainerRows[0].userId,
+            trainerId: client[0].trainerId,
+            fromName: ctx.user.name || client[0].name || "Your client",
+            content: input.content,
+          });
+        }
+        setTypingStore(client[0].trainerId, client[0].id, "client", false);
+
         return { success: true, messageId: (result as any)[0].insertId };
       }),
     // Get my progress metrics
@@ -1365,28 +1636,570 @@ Return as JSON with structure: {
       .query(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
-        
-        const program = await db
-          .select()
-          .from(programs)
-          .where(eq(programs.id, input.programId))
-          
-        
+        const program = await db.select().from(programs).where(eq(programs.id, input.programId));
         if (program.length === 0) throw new Error("Program not found");
         const programData = program[0];
-        
-        // Parse content
-        const content = typeof programData.content === "string" 
-          ? JSON.parse(programData.content) 
-          : programData.content;
-        
-        const pdfStream = generateMealPlanPDF(
-          content?.meals || [],
-          programData.name
-        );
-        
+        const content = typeof programData.content === "string" ? JSON.parse(programData.content) : programData.content;
+        const pdfStream = generateMealPlanPDF(content?.meals || [], programData.name);
         return { pdfStream, filename: `${programData.name.replace(/\s+/g, "_")}_meal_plan.pdf` };
       }),
+  }),
+
+  // ── PASSWORD RESET ──────────────────────────────────────────────────────────
+  // (added to the top-level router so clients can reset without being authed)
+  forgotPassword: publicProcedure
+    .input(z.object({ email: z.string().email() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return { success: true, message: "If that email exists, a reset link was sent." };
+      const userRows = await db.select().from(localAuth).where(eq(localAuth.email, input.email.toLowerCase())).limit(1);
+      if (userRows.length > 0) {
+        const token = randomBytes(32).toString("hex");
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+        await db.insert(passwordResetTokens).values({ userId: userRows[0].userId, token, expiresAt });
+        await logAudit("password_reset_request", { userId: userRows[0].userId, ipAddress: ctx.req.ip });
+
+        const userRow = await db.select().from(users).where(eq(users.id, userRows[0].userId)).limit(1);
+        const emailSent = await sendPasswordResetEmail(input.email.toLowerCase(), userRow[0]?.name || "", token);
+
+        // In dev (no email provider configured) we also return the raw token
+        // so the flow can be tested without a real inbox.
+        return {
+          success: true,
+          message: "Reset link sent. Check your email.",
+          ...(emailSent ? {} : { token }),
+        };
+      }
+      return { success: true, message: "If that email exists, a reset link was sent." };
+    }),
+
+  resetPassword: publicProcedure
+    .input(z.object({ token: z.string(), newPassword: z.string().min(8) }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const tokenRows = await db.select().from(passwordResetTokens)
+        .where(and(eq(passwordResetTokens.token, input.token), isNull(passwordResetTokens.usedAt), gte(passwordResetTokens.expiresAt, new Date())))
+        .limit(1);
+      if (tokenRows.length === 0) throw new Error("Invalid or expired reset link.");
+      const newHash = await hashPassword(input.newPassword);
+      await db.update(localAuth).set({ passwordHash: newHash }).where(eq(localAuth.userId, tokenRows[0].userId));
+      await db.update(passwordResetTokens).set({ usedAt: new Date() }).where(eq(passwordResetTokens.id, tokenRows[0].id));
+      await logAudit("password_reset_complete", { userId: tokenRows[0].userId, ipAddress: ctx.req.ip });
+      return { success: true };
+    }),
+
+  verifyEmail: publicProcedure
+    .input(z.object({ token: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const rows = await db.select().from(emailVerificationTokens)
+        .where(and(eq(emailVerificationTokens.token, input.token), isNull(emailVerificationTokens.usedAt), gte(emailVerificationTokens.expiresAt, new Date())))
+        .limit(1);
+      if (rows.length === 0) throw new Error("Invalid or expired verification link.");
+      await db.update(localAuth).set({} as any).where(eq(localAuth.userId, rows[0].userId)); // noop to trigger update
+      // Mark user verified
+      const userRow = await db.select().from(localAuth).where(eq(localAuth.userId, rows[0].userId)).limit(1);
+      if (userRow.length > 0) {
+        // Update users.emailVerified — use raw update since schema was updated
+        await db.execute(sql`UPDATE users SET emailVerified = true WHERE id = ${rows[0].userId}`);
+      }
+      await db.update(emailVerificationTokens).set({ usedAt: new Date() }).where(eq(emailVerificationTokens.id, rows[0].id));
+      return { success: true };
+    }),
+
+  // ── NOTIFICATIONS ───────────────────────────────────────────────────────────
+  notifications: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return await db.select().from(notifications).where(eq(notifications.userId, ctx.user.id)).orderBy(desc(notifications.createdAt)).limit(50);
+    }),
+    unreadCount: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return { count: 0 };
+      const rows = await db.select({ count: sql<number>`count(*)` }).from(notifications)
+        .where(and(eq(notifications.userId, ctx.user.id), eq(notifications.isRead, false)));
+      return { count: Number(rows[0]?.count ?? 0) };
+    }),
+    markRead: protectedProcedure.input(z.object({ notificationId: z.number() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      await db.update(notifications).set({ isRead: true, readAt: new Date() })
+        .where(and(eq(notifications.id, input.notificationId), eq(notifications.userId, ctx.user.id)));
+      return { success: true };
+    }),
+    markAllRead: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      await db.update(notifications).set({ isRead: true, readAt: new Date() })
+        .where(and(eq(notifications.userId, ctx.user.id), eq(notifications.isRead, false)));
+      return { success: true };
+    }),
+    registerPushToken: protectedProcedure
+      .input(z.object({ token: z.string(), platform: z.enum(["ios", "android", "web"]) }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        await db.insert(pushTokens).values({ userId: ctx.user.id, token: input.token, platform: input.platform });
+        return { success: true };
+      }),
+  }),
+
+  // ── HABITS ──────────────────────────────────────────────────────────────────
+  habits: router({
+    listForClient: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const clientRows = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).limit(1);
+      if (clientRows.length === 0) return [];
+      const client = clientRows[0];
+      const today = new Date().toISOString().slice(0, 10);
+      const habits = await db.select().from(habitTemplates)
+        .where(and(eq(habitTemplates.trainerId, client.trainerId), eq(habitTemplates.isActive, true)));
+      const todayEntries = await db.select().from(habitEntries)
+        .where(and(eq(habitEntries.clientId, client.id), eq(habitEntries.date, today)));
+      const entryMap: Record<number, typeof todayEntries[0]> = {};
+      todayEntries.forEach(e => { entryMap[e.habitTemplateId] = e; });
+      return habits.map(h => ({ ...h, todayEntry: entryMap[h.id] ?? null }));
+    }),
+    logEntry: protectedProcedure
+      .input(z.object({ habitTemplateId: z.number(), date: z.string(), value: z.number().optional(), completed: z.boolean(), notes: z.string().optional() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const clientRows = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).limit(1);
+        if (clientRows.length === 0) throw new Error("Client not found");
+        const existing = await db.select().from(habitEntries)
+          .where(and(eq(habitEntries.clientId, clientRows[0].id), eq(habitEntries.habitTemplateId, input.habitTemplateId), eq(habitEntries.date, input.date))).limit(1);
+        if (existing.length > 0) {
+          await db.update(habitEntries).set({ value: input.value as any, completed: input.completed, notes: input.notes }).where(eq(habitEntries.id, existing[0].id));
+        } else {
+          await db.insert(habitEntries).values({ habitTemplateId: input.habitTemplateId, clientId: clientRows[0].id, date: input.date, value: input.value as any, completed: input.completed, notes: input.notes });
+        }
+        return { success: true };
+      }),
+    getWeekEntries: protectedProcedure
+      .input(z.object({ weekStartDate: z.string() }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const clientRows = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).limit(1);
+        if (clientRows.length === 0) return [];
+        const weekEnd = new Date(input.weekStartDate);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+        const weekEndStr = weekEnd.toISOString().slice(0, 10);
+        return await db.select().from(habitEntries)
+          .where(and(eq(habitEntries.clientId, clientRows[0].id), gte(habitEntries.date, input.weekStartDate), lte(habitEntries.date, weekEndStr)));
+      }),
+    getStreak: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return { currentStreak: 0, longestStreak: 0 };
+      const clientRows = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).limit(1);
+      if (clientRows.length === 0) return { currentStreak: 0, longestStreak: 0 };
+      const entries = await db.select({ date: habitEntries.date }).from(habitEntries)
+        .where(and(eq(habitEntries.clientId, clientRows[0].id), eq(habitEntries.completed, true)))
+        .orderBy(desc(habitEntries.date));
+      const dates = new Set(entries.map(e => e.date));
+      let streak = 0; let longest = 0; let current = 0;
+      const today = new Date();
+      for (let i = 0; i < 365; i++) {
+        const d = new Date(today); d.setDate(d.getDate() - i);
+        const ds = d.toISOString().slice(0, 10);
+        if (dates.has(ds)) { current++; if (i === streak) streak = current; longest = Math.max(longest, current); }
+        else { if (i === 0 || i === 1) streak = current; current = 0; }
+      }
+      return { currentStreak: streak, longestStreak: longest };
+    }),
+    trainerCreate: protectedProcedure
+      .input(z.object({ clientId: z.number().optional(), name: z.string(), category: z.enum(["steps","water","sleep","supplements","meditation","workout","custom"]), unit: z.string().optional(), dailyTarget: z.number().optional(), icon: z.string().optional() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const trainer = await getTrainerByUserId(ctx.user.id);
+        if (!trainer) throw new Error("Trainer not found");
+        const result = await db.insert(habitTemplates).values({ trainerId: trainer.id, clientId: input.clientId, name: input.name, category: input.category, unit: input.unit, dailyTarget: input.dailyTarget as any, icon: input.icon });
+        return { success: true, id: (result as any).insertId };
+      }),
+    trainerList: protectedProcedure
+      .input(z.object({ clientId: z.number().optional() }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const trainer = await getTrainerByUserId(ctx.user.id);
+        if (!trainer) throw new Error("Trainer not found");
+        const conditions = input.clientId
+          ? and(eq(habitTemplates.trainerId, trainer.id), eq(habitTemplates.clientId, input.clientId))
+          : eq(habitTemplates.trainerId, trainer.id);
+        return await db.select().from(habitTemplates).where(conditions).orderBy(habitTemplates.name);
+      }),
+    trainerSetActive: protectedProcedure
+      .input(z.object({ id: z.number(), isActive: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const trainer = await getTrainerByUserId(ctx.user.id);
+        if (!trainer) throw new Error("Trainer not found");
+        await db.update(habitTemplates).set({ isActive: input.isActive })
+          .where(and(eq(habitTemplates.id, input.id), eq(habitTemplates.trainerId, trainer.id)));
+        return { success: true };
+      }),
+    trainerDelete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const trainer = await getTrainerByUserId(ctx.user.id);
+        if (!trainer) throw new Error("Trainer not found");
+        await db.delete(habitTemplates).where(and(eq(habitTemplates.id, input.id), eq(habitTemplates.trainerId, trainer.id)));
+        return { success: true };
+      }),
+  }),
+
+  // ── ACHIEVEMENTS ────────────────────────────────────────────────────────────
+  achievements: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const clientRows = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).limit(1);
+      const allAchievements = await db.select().from(achievements).orderBy(achievements.category);
+      if (clientRows.length === 0) return allAchievements.map(a => ({ ...a, unlocked: false, unlockedAt: null }));
+      const unlocks = await db.select().from(achievementUnlocks).where(eq(achievementUnlocks.clientId, clientRows[0].id));
+      const unlockMap: Record<number, Date> = {};
+      unlocks.forEach(u => { unlockMap[u.achievementId] = u.unlockedAt; });
+      return allAchievements.map(a => ({ ...a, unlocked: !!unlockMap[a.id], unlockedAt: unlockMap[a.id] ?? null }));
+    }),
+    getPoints: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return { total: 0, recentUnlocks: [] };
+      const clientRows = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).limit(1);
+      if (clientRows.length === 0) return { total: 0, recentUnlocks: [] };
+      const unlocks = await db.select({ achievementId: achievementUnlocks.achievementId, unlockedAt: achievementUnlocks.unlockedAt })
+        .from(achievementUnlocks).where(eq(achievementUnlocks.clientId, clientRows[0].id));
+      const achievementIds = unlocks.map(u => u.achievementId);
+      if (achievementIds.length === 0) return { total: 0, recentUnlocks: [] };
+      const earned = await db.select().from(achievements).where(inArray(achievements.id, achievementIds));
+      const total = earned.reduce((sum, a) => sum + (a.points ?? 0), 0);
+      const recentUnlocks = earned.slice(-3).reverse();
+      return { total, recentUnlocks };
+    }),
+    manualUnlock: protectedProcedure
+      .input(z.object({ clientId: z.number(), achievementSlug: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const trainer = await getTrainerByUserId(ctx.user.id);
+        if (!trainer) throw new Error("Trainer not found");
+        const ach = await db.select().from(achievements).where(eq(achievements.slug, input.achievementSlug)).limit(1);
+        if (ach.length === 0) throw new Error("Achievement not found");
+        const exists = await db.select().from(achievementUnlocks).where(and(eq(achievementUnlocks.clientId, input.clientId), eq(achievementUnlocks.achievementId, ach[0].id))).limit(1);
+        if (exists.length > 0) return { success: true, alreadyUnlocked: true };
+        await db.insert(achievementUnlocks).values({ achievementId: ach[0].id, clientId: input.clientId, notified: true });
+
+        // Notify the client they unlocked something — in-app + push, best-effort
+        const client = await getClientById(input.clientId);
+        if (client?.email) {
+          const recipientUser = await getUserByOpenId(`local:${client.email.toLowerCase()}`);
+          if (recipientUser) {
+            const title = `Achievement Unlocked: ${ach[0].name}`;
+            const body = ach[0].description || "You've earned a new badge!";
+            await db.insert(notifications).values({
+              userId: recipientUser.id, trainerId: trainer.id, type: "achievement_unlock",
+              title, body, data: JSON.stringify({ kind: "achievement", slug: ach[0].slug }), isRead: false,
+            }).catch(() => {});
+            await sendPushToUser(recipientUser.id, { title, body: `${ach[0].icon ?? "🏆"} ${body}`, data: { type: "achievement_unlock", slug: ach[0].slug } });
+          }
+        }
+        return { success: true, alreadyUnlocked: false };
+      }),
+  }),
+
+  // ── RETENTION / CHURN RISK ─────────────────────────────────────────────────
+  retention: router({
+    calculateRiskScores: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const trainer = await getTrainerByUserId(ctx.user.id);
+      if (!trainer) throw new Error("Trainer not found");
+      const activeClients = await db.select().from(clients).where(and(eq(clients.trainerId, trainer.id), eq(clients.status, "active")));
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const updated: any[] = [];
+      for (const client of activeClients) {
+        const recentCheckIns = await db.select().from(checkIns).where(and(eq(checkIns.clientId, client.id), gte(checkIns.createdAt, thirtyDaysAgo)));
+        const recentMessages = await db.select().from(messages).where(and(eq(messages.clientId, client.id), gte(messages.createdAt, thirtyDaysAgo))).orderBy(desc(messages.createdAt)).limit(1);
+        const lastMsg = recentMessages[0];
+        const daysSinceMsg = lastMsg ? Math.floor((now.getTime() - new Date(lastMsg.createdAt).getTime()) / 86400000) : 30;
+        const missedCheckIns = Math.max(0, 4 - recentCheckIns.length); // expect weekly
+        let score = 0;
+        score += Math.min(40, missedCheckIns * 10);
+        score += Math.min(30, daysSinceMsg * 2);
+        score += recentCheckIns.length === 0 ? 20 : 0;
+        const riskLevel = score < 30 ? "low" : score < 60 ? "medium" : "high";
+        await db.insert(clientRiskScores).values({ clientId: client.id, trainerId: trainer.id, score, riskLevel, missedCheckIns, messageResponseDays: daysSinceMsg as any, lastCalculatedAt: now })
+          .onDuplicateKeyUpdate({ set: { score, riskLevel, missedCheckIns, messageResponseDays: daysSinceMsg as any, lastCalculatedAt: now } });
+        if (riskLevel !== "low") updated.push({ clientId: client.id, name: client.name, riskLevel, score });
+      }
+      const highRisk = updated.filter(c => c.riskLevel === "high");
+      // Alert the trainer about newly-flagged high-risk clients — in-app + push, best-effort
+      if (highRisk.length > 0) {
+        const title = `${highRisk.length} client${highRisk.length > 1 ? "s" : ""} at high churn risk`;
+        const body = highRisk.map(c => c.name).slice(0, 5).join(", ");
+        await db.insert(notifications).values({
+          userId: ctx.user.id, trainerId: trainer.id, type: "risk_alert",
+          title, body, data: JSON.stringify({ kind: "risk_alert", clientIds: highRisk.map(c => c.clientId) }), isRead: false,
+        }).catch(() => {});
+        await sendPushToUser(ctx.user.id, { title, body, data: { type: "risk_alert" } });
+      }
+      return { updated: activeClients.length, highRisk };
+    }),
+    getRiskDashboard: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const trainer = await getTrainerByUserId(ctx.user.id);
+      if (!trainer) throw new Error("Trainer not found");
+      return await db.select({ score: clientRiskScores, clientName: clients.name, clientEmail: clients.email })
+        .from(clientRiskScores)
+        .leftJoin(clients, eq(clientRiskScores.clientId, clients.id))
+        .where(eq(clientRiskScores.trainerId, trainer.id))
+        .orderBy(desc(clientRiskScores.score));
+    }),
+    getAtRiskClients: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const trainer = await getTrainerByUserId(ctx.user.id);
+      if (!trainer) throw new Error("Trainer not found");
+      return await db.select({ score: clientRiskScores, clientName: clients.name, clientEmail: clients.email, clientId: clients.id })
+        .from(clientRiskScores)
+        .leftJoin(clients, eq(clientRiskScores.clientId, clients.id))
+        .where(and(eq(clientRiskScores.trainerId, trainer.id), ne(clientRiskScores.riskLevel, "low")))
+        .orderBy(desc(clientRiskScores.score));
+    }),
+  }),
+
+  // ── NUTRITION ───────────────────────────────────────────────────────────────
+  nutrition: router({
+    generateGroceryList: protectedProcedure
+      .input(z.object({ programId: z.number(), weekStartDate: z.string().optional() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const trainer = await getTrainerByUserId(ctx.user.id);
+        if (!trainer) throw new Error("Trainer not found");
+        const program = await getProgramById(input.programId);
+        if (!program) throw new Error("Program not found");
+        const content = program.content ? (typeof program.content === "string" ? JSON.parse(program.content) : program.content) : {};
+        const meals = content?.days?.flatMap((d: any) => d.meals ?? []) ?? content?.meals ?? [];
+        const prompt = `Extract a grocery shopping list from this meal plan. Return JSON array of {name: string, quantity: string, category: "proteins"|"produce"|"grains"|"dairy"|"pantry"|"other"}.
+Meals: ${JSON.stringify(meals).slice(0, 3000)}`;
+        const response = await invokeLLM({ messages: [{ role: "system", content: "You extract grocery lists from meal plans. Return valid JSON only." }, { role: "user", content: prompt }] });
+        let items: any[] = [];
+        try { items = JSON.parse(response.choices[0]?.message?.content ?? "[]"); } catch { items = []; }
+        const result = await db.insert(groceryLists).values({ programId: input.programId, clientId: program.clientId ?? 0, trainerId: trainer.id, items: JSON.stringify(items), weekStartDate: input.weekStartDate });
+        return { id: (result as any).insertId, items };
+      }),
+    getGroceryList: protectedProcedure.input(z.object({ programId: z.number() })).query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return null;
+      const rows = await db.select().from(groceryLists).where(eq(groceryLists.programId, input.programId)).orderBy(desc(groceryLists.createdAt)).limit(1);
+      if (rows.length === 0) return null;
+      return { ...rows[0], items: JSON.parse(rows[0].items) };
+    }),
+    addSubstitution: protectedProcedure
+      .input(z.object({ primaryFood: z.string(), substituteFood: z.string(), caloriesMatch: z.boolean().default(true), proteinMatch: z.boolean().default(false), notes: z.string().optional() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const trainer = await getTrainerByUserId(ctx.user.id);
+        if (!trainer) throw new Error("Trainer not found");
+        await db.insert(foodSubstitutions).values({ trainerId: trainer.id, primaryFood: input.primaryFood, substituteFood: input.substituteFood, caloriesMatch: input.caloriesMatch, proteinMatch: input.proteinMatch, notes: input.notes });
+        return { success: true };
+      }),
+    getSubstitutions: protectedProcedure.input(z.object({ food: z.string() })).query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const trainer = await getTrainerByUserId(ctx.user.id);
+      if (!trainer) return [];
+      return await db.select().from(foodSubstitutions).where(and(eq(foodSubstitutions.trainerId, trainer.id), like(foodSubstitutions.primaryFood, `%${input.food}%`)));
+    }),
+  }),
+
+  // ── ANALYTICS ───────────────────────────────────────────────────────────────
+  analytics: router({
+    getRevenueSummary: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return { mrr: 0, arr: 0, avgClientValue: 0, activeClients: 0 };
+      const trainer = await getTrainerByUserId(ctx.user.id);
+      if (!trainer) throw new Error("Trainer not found");
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthRevRows = await db.select({ total: sql<string>`COALESCE(SUM(amount), 0)` }).from(payments)
+        .where(and(eq(payments.trainerId, trainer.id), eq(payments.status, "succeeded"), gte(payments.createdAt, monthStart)));
+      const activeClientsRows = await db.select({ count: sql<number>`count(*)` }).from(clients)
+        .where(and(eq(clients.trainerId, trainer.id), eq(clients.status, "active")));
+      const mrr = parseFloat(monthRevRows[0]?.total ?? "0");
+      const activeClients = Number(activeClientsRows[0]?.count ?? 0);
+      const totalRevRows = await db.select({ total: sql<string>`COALESCE(SUM(amount), 0)` }).from(payments).where(and(eq(payments.trainerId, trainer.id), eq(payments.status, "succeeded")));
+      const totalRev = parseFloat(totalRevRows[0]?.total ?? "0");
+      return { mrr, arr: mrr * 12, avgClientValue: activeClients > 0 ? totalRev / activeClients : 0, activeClients };
+    }),
+    getLeadFunnel: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return { total: 0, contacted: 0, qualified: 0, converted: 0 };
+      const trainer = await getTrainerByUserId(ctx.user.id);
+      if (!trainer) throw new Error("Trainer not found");
+      const allLeads = await db.select({ status: leads.status }).from(leads).where(eq(leads.trainerId, trainer.id));
+      const total = allLeads.length;
+      const contacted = allLeads.filter(l => ["contacted","qualified","converted"].includes(l.status ?? "")).length;
+      const qualified = allLeads.filter(l => ["qualified","converted"].includes(l.status ?? "")).length;
+      const converted = allLeads.filter(l => l.status === "converted").length;
+      return {
+        total, contacted, qualified, converted,
+        contactedRate: total > 0 ? contacted / total : 0,
+        qualifiedRate: total > 0 ? qualified / total : 0,
+        conversionRate: total > 0 ? converted / total : 0,
+      };
+    }),
+    getMonthlyRevenueHistory: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const trainer = await getTrainerByUserId(ctx.user.id);
+      if (!trainer) throw new Error("Trainer not found");
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      const rows = await db.select({
+        month: sql<string>`DATE_FORMAT(createdAt, '%Y-%m')`,
+        revenue: sql<string>`SUM(amount)`,
+      }).from(payments)
+        .where(and(eq(payments.trainerId, trainer.id), eq(payments.status, "succeeded"), gte(payments.createdAt, sixMonthsAgo)))
+        .groupBy(sql`DATE_FORMAT(createdAt, '%Y-%m')`)
+        .orderBy(sql`DATE_FORMAT(createdAt, '%Y-%m')`);
+      return rows.map(r => ({ month: r.month, revenue: parseFloat(r.revenue ?? "0") }));
+    }),
+  }),
+
+  // ── AI (EXPANDED) ───────────────────────────────────────────────────────────
+  // (these are added to the existing ai router via separate procedures at top level
+  //  since modifying the existing ai block is complex — these are top-level aliases)
+  aiCoach: router({
+    analyzeCheckIn: protectedProcedure.input(z.object({ checkInId: z.number() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const trainer = await getTrainerByUserId(ctx.user.id);
+      if (!trainer) throw new Error("Trainer not found");
+      const checkInRows = await db.select().from(checkIns).where(eq(checkIns.id, input.checkInId)).limit(1);
+      if (checkInRows.length === 0) throw new Error("Check-in not found");
+      const ci = checkInRows[0];
+      const clientRows = await db.select().from(clients).where(eq(clients.id, ci.clientId)).limit(1);
+      const client = clientRows[0];
+      const history = await db.select().from(checkIns).where(eq(checkIns.clientId, ci.clientId)).orderBy(desc(checkIns.createdAt)).limit(5);
+      const weights = history.map(h => `${new Date(h.createdAt).toLocaleDateString()}: ${h.weight ?? "N/A"} lbs`).join(", ");
+      const prompt = `Analyze this fitness check-in for ${client?.name ?? "Client"}.
+Profile: age=${client?.age}, fitnessLevel=${client?.fitnessLevel}, goals=${client?.goals}
+Latest: weight=${ci.weight} lbs, energy=${ci.energyLevel}/10, notes="${ci.notes}"
+Weight history: ${weights}
+
+Return JSON: {"summary":"2-3 sentences","concerns":["string"],"recommendations":["string"],"progressNote":"positive note for client"}`;
+      const resp = await invokeLLM({ messages: [{ role: "system", content: "You are an expert fitness coach. Return valid JSON only." }, { role: "user", content: prompt }] });
+      let analysis: any = {};
+      try { analysis = JSON.parse(resp.choices[0]?.message?.content ?? "{}"); } catch { analysis = { summary: resp.choices[0]?.message?.content, concerns: [], recommendations: [] }; }
+      await db.insert(aiSummaries).values({ clientId: ci.clientId, trainerId: trainer.id, summaryType: "check_in", content: JSON.stringify(analysis), sourceId: ci.id });
+      await db.update(checkIns).set({ aiAnalysis: analysis.progressNote ?? "" }).where(eq(checkIns.id, ci.id));
+      return analysis;
+    }),
+    generateProgramProgression: protectedProcedure.input(z.object({ clientId: z.number(), currentProgramId: z.number() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const client = await getClientById(input.clientId);
+      if (!client) throw new Error("Client not found");
+      const program = await getProgramById(input.currentProgramId);
+      if (!program) throw new Error("Program not found");
+      const recentCheckIns = await db.select().from(checkIns).where(eq(checkIns.clientId, input.clientId)).orderBy(desc(checkIns.createdAt)).limit(4);
+      const weightTrend = recentCheckIns.map(c => `${new Date(c.createdAt).toLocaleDateString()}: ${c.weight} lbs, energy ${c.energyLevel}/10`).join("; ");
+      const content = program.content ? JSON.parse(program.content) : {};
+      const prompt = `Generate a program progression for ${client.name} (${client.fitnessLevel}, goal: ${client.goals}).
+Current program: ${program.name}. Recent check-ins: ${weightTrend}
+Return JSON: {"weeklyAdjustments":["string"],"loadIncreases":["exercise: change"],"exerciseChanges":["swap or modify"],"rationale":"string"}`;
+      const resp = await invokeLLM({ messages: [{ role: "system", content: "You are an expert strength coach. Return valid JSON only." }, { role: "user", content: prompt }] });
+      let progression: any = {};
+      try { progression = JSON.parse(resp.choices[0]?.message?.content ?? "{}"); } catch { progression = { rationale: resp.choices[0]?.message?.content }; }
+      await db.insert(aiSummaries).values({ clientId: input.clientId, trainerId: (await getTrainerByUserId(ctx.user.id))!.id, summaryType: "program_progression", content: JSON.stringify(progression), sourceId: input.currentProgramId });
+      return progression;
+    }),
+    generateNutritionAdjustment: protectedProcedure.input(z.object({ clientId: z.number() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const client = await getClientById(input.clientId);
+      if (!client) throw new Error("Client not found");
+      const recentCheckIns = await db.select().from(checkIns).where(eq(checkIns.clientId, input.clientId)).orderBy(desc(checkIns.createdAt)).limit(4);
+      const weights = recentCheckIns.map(c => parseFloat(c.weight?.toString() ?? "0")).filter(w => w > 0);
+      const weightTrend = weights.length >= 2 ? weights[0] - weights[weights.length - 1] : 0;
+      const daySpan = recentCheckIns.length >= 2 ? (new Date(recentCheckIns[0].createdAt).getTime() - new Date(recentCheckIns[recentCheckIns.length - 1].createdAt).getTime()) / 86400000 : 0;
+      const prompt = `Generate a nutrition adjustment for ${client.name}.
+Goal: ${client.goals}, current calories: ${client.dailyCalorieTarget ?? "unknown"}.
+Weight trend: ${weightTrend >= 0 ? "+" : ""}${weightTrend.toFixed(1)} lbs over ${Math.round(daySpan)} days.
+Macros: protein ${client.proteinTargetG}g, carbs ${client.carbsTargetG}g, fat ${client.fatTargetG}g.
+Return JSON: {"calories":number_change,"proteinG":number_change,"carbsG":number_change,"rationale":"string","timeline":"string","foodSuggestions":["string"]}`;
+      const resp = await invokeLLM({ messages: [{ role: "system", content: "You are an expert nutritionist. Return valid JSON only." }, { role: "user", content: prompt }] });
+      let adjustment: any = {};
+      try { const content = resp.choices[0]?.message?.content; const contentStr = typeof content === 'string' ? content : JSON.stringify(content); adjustment = JSON.parse(contentStr ?? "{}"); } catch { const content = resp.choices[0]?.message?.content; adjustment = { rationale: typeof content === 'string' ? content : JSON.stringify(content) }; }
+      await db.insert(aiSummaries).values({ clientId: input.clientId, trainerId: (await getTrainerByUserId(ctx.user.id))!.id, summaryType: "nutrition_adjustment", content: JSON.stringify(adjustment) });
+      return adjustment;
+    }),
+    assistant: protectedProcedure.input(z.object({ prompt: z.string(), clientId: z.number().optional() })).mutation(async ({ ctx, input }) => {
+      let context = "";
+      if (input.clientId) {
+        const client = await getClientById(input.clientId);
+        if (client) context = `Context — Client: ${client.name}, ${client.age}yo ${client.sex}, ${client.fitnessLevel}, goals: ${client.goals}. `;
+      }
+      const resp = await invokeLLM({ messages: [
+        { role: "system", content: "You are Justin Watson's AI coaching assistant for W.A.R. Coaching. Be direct, tactical, results-focused. Help with program design, client analysis, and coaching decisions." },
+        { role: "user", content: context + input.prompt }
+      ]});
+      return { response: resp.choices[0]?.message?.content ?? "" };
+    }),
+    generateWeeklySummary: protectedProcedure.mutation(async ({ ctx }) => {
+      const trainer = await getTrainerByUserId(ctx.user.id);
+      if (!trainer) throw new Error("Trainer not found");
+      return await generateWeeklySummaryForTrainer(trainer.id);
+    }),
+  }),
+
+  // ── MACRO TARGETS (added to clients router via alias) ──────────────────────
+  clientMacros: router({
+    update: protectedProcedure
+      .input(z.object({ clientId: z.number(), dailyCalorieTarget: z.number().optional(), proteinTargetG: z.number().optional(), carbsTargetG: z.number().optional(), fatTargetG: z.number().optional(), fiberTargetG: z.number().optional(), waterTargetOz: z.number().optional() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const trainer = await getTrainerByUserId(ctx.user.id);
+        if (!trainer) throw new Error("Trainer not found");
+        const client = await getClientById(input.clientId);
+        if (!client || client.trainerId !== trainer.id) throw new Error("Client not found");
+        const updateData: any = {};
+        if (input.dailyCalorieTarget !== undefined) updateData.dailyCalorieTarget = input.dailyCalorieTarget;
+        if (input.proteinTargetG !== undefined) updateData.proteinTargetG = input.proteinTargetG;
+        if (input.carbsTargetG !== undefined) updateData.carbsTargetG = input.carbsTargetG;
+        if (input.fatTargetG !== undefined) updateData.fatTargetG = input.fatTargetG;
+        if (input.fiberTargetG !== undefined) updateData.fiberTargetG = input.fiberTargetG;
+        if (input.waterTargetOz !== undefined) updateData.waterTargetOz = input.waterTargetOz;
+        await db.update(clients).set(updateData).where(eq(clients.id, input.clientId));
+        return { success: true };
+      }),
+    get: protectedProcedure.input(z.object({ clientId: z.number() })).query(async ({ ctx, input }) => {
+      const client = await getClientById(input.clientId);
+      if (!client) throw new Error("Client not found");
+      return { dailyCalorieTarget: client.dailyCalorieTarget, proteinTargetG: client.proteinTargetG, carbsTargetG: client.carbsTargetG, fatTargetG: client.fatTargetG, fiberTargetG: client.fiberTargetG, waterTargetOz: client.waterTargetOz };
+    }),
+    getMyTargets: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return null;
+      const clientRows = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).limit(1);
+      if (clientRows.length === 0) return null;
+      const c = clientRows[0];
+      return { dailyCalorieTarget: c.dailyCalorieTarget, proteinTargetG: c.proteinTargetG, carbsTargetG: c.carbsTargetG, fatTargetG: c.fatTargetG, fiberTargetG: c.fiberTargetG, waterTargetOz: c.waterTargetOz };
+    }),
   }),
 });
 export type AppRouter = typeof appRouter;

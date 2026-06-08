@@ -7,10 +7,11 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
-// Sentry imports removed - not critical for MVP
 import { serveStatic, setupVite } from "./vite";
 import { getDb } from "../db";
 import { ENV } from "./env";
+import { loginLimiter, signupLimiter, messagingLimiter, uploadLimiter, generalApiLimiter } from "../rateLimiter";
+import { startScheduler } from "../scheduler";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -52,7 +53,16 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
   registerOAuthRoutes(app);
-  
+
+  // Rate limiting — applied before tRPC handler
+  app.use("/api/trpc/auth.clientLogin", loginLimiter);
+  app.use("/api/trpc/auth.clientRegister", signupLimiter);
+  app.use("/api/trpc/forgotPassword", loginLimiter);
+  app.use("/api/trpc/messages.send", messagingLimiter);
+  app.use("/api/trpc/portal.sendMessage", messagingLimiter);
+  app.use("/api/storage", uploadLimiter);
+  app.use("/api/trpc", generalApiLimiter);
+
   // Generator endpoints
   // Health endpoint for readiness checks (returns DB availability)
   app.get("/health", async (_req, res) => {
@@ -264,6 +274,9 @@ async function startServer() {
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
   });
+
+  // Background jobs (weekly AI coach summary auto-generation, etc.)
+  startScheduler();
 }
 
 startServer().catch(console.error);

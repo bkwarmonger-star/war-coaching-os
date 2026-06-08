@@ -1,4 +1,5 @@
-import { useState } from "react";
+import type React from "react";
+import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/Button";
@@ -9,6 +10,8 @@ export default function ClientsPage() {
   const [, setLocation] = useLocation();
   const [showForm, setShowForm] = useState(false);
   const [selectedClientForAssignment, setSelectedClientForAssignment] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [trainingTypeFilter, setTrainingTypeFilter] = useState("all");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -23,6 +26,21 @@ export default function ClientsPage() {
   });
 
   const { data: clientsData, refetch } = trpc.clients.list.useQuery({ limit: 100, offset: 0 });
+  const clients = clientsData?.clients ?? [];
+  const filteredClients = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return clients.filter((client) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        client.name.toLowerCase().includes(normalizedSearch) ||
+        client.email.toLowerCase().includes(normalizedSearch) ||
+        client.fitnessLevel?.toLowerCase().includes(normalizedSearch);
+      const matchesType = trainingTypeFilter === "all" || client.trainingType === trainingTypeFilter;
+
+      return matchesSearch && matchesType;
+    });
+  }, [clients, searchTerm, trainingTypeFilter]);
   const createMutation = trpc.clients.create.useMutation({
     onSuccess: () => {
       setShowForm(false);
@@ -59,10 +77,10 @@ export default function ClientsPage() {
   };
 
   return (
-    <div style={{ backgroundColor: "var(--black)", color: "var(--white)" }} className="min-h-screen p-8">
+    <div style={{ backgroundColor: "var(--black)", color: "var(--white)" }} className="min-h-screen p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="font-bebas text-4xl" style={{ color: "var(--gold)", letterSpacing: "0.1em" }}>
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-8">
+          <h1 className="font-bebas text-4xl md:text-5xl" style={{ color: "var(--gold)", letterSpacing: "0.1em" }}>
             CLIENT MANAGEMENT
           </h1>
           <Button variant="primary" onClick={() => setShowForm(!showForm)}>
@@ -74,7 +92,7 @@ export default function ClientsPage() {
           <Card className="mb-8">
             <CardBody>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <input
                     type="text"
                     placeholder="Name"
@@ -163,7 +181,7 @@ export default function ClientsPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani col-span-2"
+                    className="border rounded px-4 py-2 font-rajdhani md:col-span-2"
                   />
                   <textarea
                     placeholder="Injuries / Limitations"
@@ -174,7 +192,7 @@ export default function ClientsPage() {
                       borderColor: "var(--border)",
                       color: "var(--white)",
                     }}
-                    className="border rounded px-4 py-2 font-rajdhani col-span-2"
+                    className="border rounded px-4 py-2 font-rajdhani md:col-span-2"
                   />
                   <select
                     value={formData.fitnessLevel}
@@ -223,10 +241,46 @@ export default function ClientsPage() {
 
         {/* Clients Table */}
         <Card>
-          <CardHeader>
-            <h2 className="font-bebas text-xl" style={{ color: "var(--white)", letterSpacing: "0.05em" }}>
-              ALL CLIENTS ({clientsData?.clients?.length || 0})
-            </h2>
+          <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="font-bebas text-xl" style={{ color: "var(--white)", letterSpacing: "0.05em" }}>
+                ALL CLIENTS ({filteredClients.length})
+              </h2>
+              {filteredClients.length !== clients.length && (
+                <p className="font-rajdhani text-xs mt-1" style={{ color: "var(--muted)" }}>
+                  Filtered from {clients.length}
+                </p>
+              )}
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(220px,1fr)_160px]">
+              <input
+                type="search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search clients"
+                className="border px-4 py-2.5 font-rajdhani text-sm"
+                style={{
+                  backgroundColor: "var(--surface2)",
+                  borderColor: "var(--border)",
+                  color: "var(--white)",
+                }}
+              />
+              <select
+                value={trainingTypeFilter}
+                onChange={(e) => setTrainingTypeFilter(e.target.value)}
+                className="border px-4 py-2.5 font-rajdhani text-sm"
+                style={{
+                  backgroundColor: "var(--surface2)",
+                  borderColor: "var(--border)",
+                  color: "var(--white)",
+                }}
+              >
+                <option value="all">All Types</option>
+                <option value="in-person">In-Person</option>
+                <option value="online">Online</option>
+                <option value="adaptive">Adaptive</option>
+              </select>
+            </div>
           </CardHeader>
           <CardBody className="p-0">
             <div className="overflow-x-auto">
@@ -257,12 +311,12 @@ export default function ClientsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {clientsData?.clients && clientsData.clients.length > 0 ? (
-                    clientsData.clients.map((client) => (
+                  {filteredClients.length > 0 ? (
+                    filteredClients.map((client) => (
                       <tr
                         key={client.id}
                         style={{ borderBottomColor: "rgba(255,255,255,0.04)" }}
-                        className="border-b transition-colors cursor-pointer hover:brightness-110"
+                        className="table-row-hover border-b transition-colors cursor-pointer"
                         onClick={() => setLocation(`/clients/${client.id}`)}
                       >
                         <td className="px-6 py-4 font-oswald" style={{ color: "var(--white)" }}>
@@ -287,7 +341,7 @@ export default function ClientsPage() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              alert("Messaging coming soon");
+                              setLocation(`/messaging?clientId=${client.id}`);
                             }}
                             style={{ backgroundColor: "var(--blue)", color: "#fff" }}
                             className="px-3 py-1.5 rounded-lg font-oswald text-xs uppercase tracking-widest hover:brightness-110 transition-all"
@@ -311,7 +365,9 @@ export default function ClientsPage() {
                     <tr>
                       <td colSpan={7} className="px-6 py-8 text-center">
                         <p className="font-rajdhani" style={{ color: "var(--muted)" }}>
-                          No clients yet. Create your first client to get started.
+                          {clients.length > 0
+                            ? "No clients match your filters."
+                            : "No clients yet. Create your first client to get started."}
                         </p>
                       </td>
                     </tr>

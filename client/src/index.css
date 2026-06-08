@@ -12,6 +12,8 @@
     --gold-bright: #e8c86a;
     --red: #b92b27;
     --red-dim: #7a1c1a;
+    --blue: #2563eb;
+    --blue-soft: rgba(37, 99, 235, 0.16);
     --white: #f5f5f5;
     --muted: #888;
     --border: #2a2a2a;
@@ -74,15 +76,26 @@
 }
 
 @layer components {
-  /* Stat card — used on Dashboard and Revenue */
+  /* Stat card - used on Dashboard and Revenue */
   .stat-card {
     position: relative;
     overflow: hidden;
-    border-radius: 0.75rem;
+    border-radius: 0.5rem;
     border: 1px solid var(--border-gold);
     padding: 1.25rem;
-    background-color: var(--surface);
+    background:
+      radial-gradient(circle at top right, rgba(201, 168, 76, 0.13), transparent 36%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 46%),
+      var(--surface);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  }
+
+  .stat-card::after {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    content: '';
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
   .stat-card::before {
@@ -144,8 +157,34 @@
 
   .tag-blue {
     border-color: rgba(59, 130, 246, 0.35);
-    background-color: rgba(59, 130, 246, 0.12);
-    color: #60a5fa;
+    background-color: var(--blue-soft);
+    color: #93c5fd;
+  }
+
+  .action-tile {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border);
+    padding: 0.875rem 1rem;
+    background-color: var(--surface2);
+    color: var(--white);
+    text-align: left;
+  }
+
+  .action-tile:hover {
+    border-color: rgba(201, 168, 76, 0.55);
+    background-color: rgba(201, 168, 76, 0.08);
+  }
+
+  .action-tile svg {
+    color: var(--gold);
+  }
+
+  .table-row-hover:hover {
+    background-color: rgba(201, 168, 76, 0.06);
   }
 
   .tag-gray {
@@ -215,6 +254,7 @@
   /* Alert items */
   .alert-item {
     display: flex;
+    align-items: flex-start;
     gap: 0.75rem;
     border-radius: 0.5rem;
     border-left: 3px solid;
@@ -236,7 +276,7 @@
     background-color: rgba(201, 168, 76, 0.08);
   }
 
-  /* Global form field polish — in @layer components to safely override preflight's border-radius: 0 */
+  /* Global form field polish - in @layer components to safely override preflight's border-radius: 0 */
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
   select,
   textarea {

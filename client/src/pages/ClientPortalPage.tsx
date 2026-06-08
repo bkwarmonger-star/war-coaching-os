@@ -4,8 +4,11 @@ import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/Button";
 import { Card, CardHeader, CardBody } from "@/components/Card";
+import HabitTrackingPage from "@/pages/HabitTrackingPage";
+import AchievementsPage from "@/pages/AchievementsPage";
+import ProgressTimelinePage from "@/pages/ProgressTimelinePage";
 
-type PortalTab = "dashboard" | "programs" | "meals" | "checkins" | "messages" | "progress" | "sessions";
+type PortalTab = "dashboard" | "programs" | "meals" | "forms" | "habits" | "checkins" | "messages" | "progress" | "timeline" | "achievements" | "sessions";
 
 export default function ClientPortalPage() {
   const { user, loading } = useAuth();
@@ -99,9 +102,13 @@ function PortalContent({ activeTab, setActiveTab }: { activeTab: PortalTab; setA
     { id: "dashboard", label: "Overview", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
     { id: "programs", label: "Programs", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" },
     { id: "meals", label: "Nutrition", icon: "M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" },
-    { id: "checkins", label: "Check-Ins", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
+    { id: "habits", label: "Habits", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
+    { id: "achievements", label: "Achievements", icon: "M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" },
+    { id: "forms", label: "Forms", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
+    { id: "checkins", label: "Check-Ins", icon: "M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" },
     { id: "messages", label: "Messages", icon: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" },
     { id: "progress", label: "Progress", icon: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" },
+    { id: "timeline", label: "Timeline", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
     { id: "sessions", label: "Sessions", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
   ];
 
@@ -158,9 +165,13 @@ function PortalContent({ activeTab, setActiveTab }: { activeTab: PortalTab; setA
         {activeTab === "dashboard" && <PortalDashboard profile={profile} />}
         {activeTab === "programs" && <PortalPrograms />}
         {activeTab === "meals" && <PortalMeals />}
+        {activeTab === "habits" && <HabitTrackingPage />}
+        {activeTab === "achievements" && <AchievementsPage />}
+        {activeTab === "forms" && <PortalForms />}
         {activeTab === "checkins" && <PortalCheckIns />}
         {activeTab === "messages" && <PortalMessages />}
         {activeTab === "progress" && <PortalProgress />}
+        {activeTab === "timeline" && <ProgressTimelinePage />}
         {activeTab === "sessions" && <PortalSessions />}
       </div>
     </div>
@@ -851,11 +862,24 @@ function PortalCheckIns() {
 
 function PortalMessages() {
   const { user } = useAuth();
+  const { data: profile } = trpc.portal.getMyProfile.useQuery();
+  const clientId = profile?.id;
   const { data: messages, isLoading, refetch } = trpc.portal.getMyMessages.useQuery(undefined, {
-    refetchInterval: 10000,
+    refetchInterval: 8000,
   });
+  const { data: typingStatus } = trpc.messages.getTypingStatus.useQuery(
+    { clientId: clientId || 0 },
+    { enabled: !!clientId, refetchInterval: 3000 }
+  );
   const [content, setContent] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const utils = trpc.useUtils();
+
+  const markThreadReadMutation = trpc.messages.markThreadRead.useMutation({
+    onSuccess: () => utils.portal.getMyMessages.invalidate(),
+  });
+  const setTypingMutation = trpc.messages.setTyping.useMutation();
 
   const sendMutation = trpc.portal.sendMessage.useMutation({
     onSuccess: () => {
@@ -864,9 +888,34 @@ function PortalMessages() {
     },
   });
 
+  // Mark trainer's messages as read whenever this tab is open
+  useEffect(() => {
+    if (clientId) markThreadReadMutation.mutate({ clientId });
+  }, [clientId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Clear typing flag on unmount / client change
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (clientId) setTypingMutation.mutate({ clientId, isTyping: false });
+    };
+  }, [clientId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleContentChange = (value: string) => {
+    setContent(value);
+    if (!clientId) return;
+    setTypingMutation.mutate({ clientId, isTyping: value.trim().length > 0 });
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      setTypingMutation.mutate({ clientId, isTyping: false });
+    }, 4000);
+  };
+
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) return;
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    if (clientId) setTypingMutation.mutate({ clientId, isTyping: false });
     sendMutation.mutate({ content: content.trim() });
   };
 
@@ -878,7 +927,19 @@ function PortalMessages() {
 
   return (
     <div className="space-y-4">
-      <h2 className="font-bebas text-3xl" style={{ color: "var(--white)" }}>MESSAGES</h2>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h2 className="font-bebas text-3xl" style={{ color: "var(--white)" }}>MESSAGES</h2>
+        {typingStatus?.trainerTyping && (
+          <span className="font-rajdhani text-xs italic flex items-center gap-1.5" style={{ color: "var(--gold)" }}>
+            <span className="flex gap-0.5">
+              {[0, 1, 2].map(i => (
+                <span key={i} className="w-1 h-1 rounded-full animate-bounce" style={{ backgroundColor: "var(--gold)", animationDelay: `${i * 0.12}s` }} />
+              ))}
+            </span>
+            Your coach is typing…
+          </span>
+        )}
+      </div>
 
       <Card className="flex flex-col" style={{ height: "calc(100vh - 320px)", minHeight: "400px" }}>
         {/* Messages Area */}
@@ -894,9 +955,27 @@ function PortalMessages() {
                       color: isMe ? "#000" : "var(--white)",
                     }}>
                       <p className="font-rajdhani text-sm">{msg.content}</p>
-                      <p className={`font-rajdhani text-xs mt-1 ${isMe ? "opacity-60" : ""}`} style={{ color: isMe ? "#000" : "var(--muted)" }}>
-                        {new Date(msg.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
-                      </p>
+                      {msg.attachmentUrl && (
+                        <a
+                          href={msg.attachmentUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-rajdhani text-xs underline mt-1 inline-block"
+                          style={{ color: isMe ? "#000" : "var(--gold)" }}
+                        >
+                          📎 {msg.attachmentName || "Attachment"}
+                        </a>
+                      )}
+                      <div className="flex items-center justify-between gap-3 mt-1">
+                        <p className="font-rajdhani text-xs" style={{ color: isMe ? "#000" : "var(--muted)", opacity: isMe ? 0.6 : 1 }}>
+                          {new Date(msg.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                        </p>
+                        {isMe && (
+                          <p className="font-rajdhani text-xs" style={{ color: msg.readAt ? "#0a4d2e" : "#000", opacity: msg.readAt ? 1 : 0.5 }}>
+                            {msg.readAt ? "Read ✓" : "Sent ✓"}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -916,7 +995,7 @@ function PortalMessages() {
             <input
               type="text"
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={(e) => handleContentChange(e.target.value)}
               placeholder="Type a message..."
               className="flex-1 px-4 py-3 rounded font-rajdhani"
               style={{ backgroundColor: "var(--surface2)", color: "var(--white)", border: "1px solid var(--border)" }}
@@ -997,6 +1076,47 @@ function PortalProgress() {
 
 // ─── SESSIONS TAB ───────────────────────────────────────────────────────────────
 
+// ─── FORMS TAB ────────────────────────────────────────────────────────────────
+function PortalForms() {
+  const { data: templates, isLoading: tLoading } = trpc.forms.listTemplates.useQuery();
+  const { data: submissions } = trpc.forms.getMySubmissions.useQuery();
+  const subMap: Record<number, any> = {};
+  (submissions ?? []).forEach((s: any) => { subMap[s.formTemplateId] = s; });
+  const required = (templates ?? []).filter((t: any) => t.isRequired && !subMap[t.id]);
+  if (tLoading) return <LoadingSkeleton />;
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="font-bebas text-3xl" style={{ color: "var(--white)" }}>MY FORMS</h2>
+        {required.length > 0 && (
+          <div className="mt-3 px-4 py-3 rounded-lg" style={{ backgroundColor: "rgba(201,168,76,0.08)", border: "1px solid var(--border-gold)" }}>
+            <p className="font-rajdhani" style={{ color: "var(--gold)" }}>⚠ {required.length} required form{required.length > 1 ? "s" : ""} still need{required.length === 1 ? "s" : ""} to be completed.</p>
+          </div>
+        )}
+      </div>
+      <div className="space-y-2">
+        {(templates ?? []).map((form: any) => {
+          const sub = subMap[form.id];
+          const status: string = sub?.status ?? "none";
+          const colors: Record<string, string> = { reviewed: "var(--success)", submitted: "#60a5fa", draft: "var(--warn)", none: "var(--border)" };
+          const labels: Record<string, string> = { reviewed: "✓ Reviewed", submitted: "✓ Submitted", draft: "Draft saved", none: "Not started" };
+          return (
+            <div key={form.slug} className="rounded-lg p-4 flex items-center justify-between" style={{ backgroundColor: "var(--surface)", border: `1px solid ${colors[status] ?? "var(--border)"}44` }}>
+              <div>
+                <h4 className="font-oswald text-base" style={{ color: "var(--white)" }}>{form.name}</h4>
+                <p className="font-rajdhani text-xs mt-0.5" style={{ color: "var(--muted)" }}>{form.category} {form.isRequired ? "· Required" : ""}</p>
+              </div>
+              <span className="font-rajdhani text-xs" style={{ color: colors[status] }}>{labels[status]}</span>
+            </div>
+          );
+        })}
+      </div>
+      <p className="font-rajdhani text-sm" style={{ color: "var(--muted)" }}>To fill out forms, use the dedicated Forms portal. Ask your trainer for the link.</p>
+    </div>
+  );
+}
+
+// ─── SESSIONS TAB ─────────────────────────────────────────────────────────────
 function PortalSessions() {
   const { data: sessions, isLoading } = trpc.portal.getMySessions.useQuery();
 
