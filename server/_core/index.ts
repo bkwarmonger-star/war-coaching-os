@@ -39,8 +39,9 @@ async function startServer() {
   // In production ensure required environment variables are present
   if (process.env.NODE_ENV === "production") {
     const missing: string[] = [];
-    if (!ENV.forgeApiKey) missing.push("FORGE_API_KEY");
     if (!process.env.DATABASE_URL) missing.push("DATABASE_URL");
+    if (!ENV.llmApiKey) missing.push("LLM_API_KEY");
+    if (!process.env.JWT_SECRET) missing.push("JWT_SECRET");
     if (missing.length > 0) {
       throw new Error(`Missing required environment variables for production: ${missing.join(", ")}`);
     }
@@ -80,28 +81,10 @@ async function startServer() {
       const db = await getDb();
       const dbAvailable = !!db;
 
-      // Storage health: try presign if forge config present
-      const storageConfigured = !!(ENV.forgeApiUrl && ENV.forgeApiKey);
-      let storageOk = false;
-      if (storageConfigured) {
-        try {
-          const presignUrl = new URL("v1/storage/presign/put", ENV.forgeApiUrl.replace(/\/+$/, "") + "/");
-          presignUrl.searchParams.set("path", `health-check-${Date.now()}.txt`);
-          const presignResp = await fetch(presignUrl.toString(), {
-            headers: { Authorization: `Bearer ${ENV.forgeApiKey}` },
-            method: "GET",
-          });
-          storageOk = presignResp.ok;
-        } catch (err) {
-          console.error("Storage health check failed:", err);
-          storageOk = false;
-        }
-      }
+      const storageConfigured = !!(ENV.awsAccessKeyId && ENV.awsSecretAccessKey && ENV.s3BucketName);
+      const llmConfigured = !!ENV.llmApiKey;
 
-      // LLM configured flag
-      const llmConfigured = !!ENV.forgeApiKey;
-
-      res.json({ ok: true, db: dbAvailable, storage: storageConfigured ? storageOk : "not_configured", llm: llmConfigured });
+      res.json({ ok: true, db: dbAvailable, storage: storageConfigured ? "configured" : "not_configured", llm: llmConfigured });
     } catch (err) {
       console.error("Health check failed:", err);
       res.status(500).json({ ok: false });
