@@ -1472,9 +1472,11 @@ Return as JSON with structure: {
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
-        if (!db) throw new Error("Database not available");
-        const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).execute()
+        const client = db
+          ? await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).execute()
+          : [];
         if (client.length === 0) throw new Error("Client profile not found. Contact your trainer.");
+        if (!db) throw new Error("Database not available");
         const result = await db.insert(checkIns).values({
           clientId: client[0].id,
           trainerId: client[0].trainerId,
@@ -1499,9 +1501,11 @@ Return as JSON with structure: {
       .input(z.object({ content: z.string().min(1) }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
-        if (!db) throw new Error("Database not available");
-        const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).execute()
+        const client = db
+          ? await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).execute()
+          : [];
         if (client.length === 0) throw new Error("Client profile not found. Contact your trainer.");
+        if (!db) throw new Error("Database not available");
         const result = await db.insert(messages).values({
           trainerId: client[0].trainerId,
           clientId: client[0].id,
@@ -1549,14 +1553,14 @@ Return as JSON with structure: {
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
-        if (!db) throw new Error("Database not available");
-        // Validate base64 data
         const buffer = Buffer.from(input.photoData, "base64");
         if (buffer.length === 0) throw new Error("Invalid photo data");
-        // Enforce 10MB limit server-side
         if (buffer.length > 10 * 1024 * 1024) throw new Error("Photo exceeds 10MB size limit");
-        const client = await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).execute()
+        const client = db
+          ? await db.select().from(clients).where(eq(clients.email, ctx.user.email || "")).execute()
+          : [];
         if (client.length === 0) throw new Error("Client profile not found. Contact your trainer.");
+        if (!db) throw new Error("Database not available");
         const { storagePut } = await import("./storage");
         const timestamp = Date.now();
         const ext = input.mimeType === "image/png" ? "png" : input.mimeType === "image/webp" ? "webp" : "jpg";
