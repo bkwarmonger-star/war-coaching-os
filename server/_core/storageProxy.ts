@@ -5,11 +5,12 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 function getS3Client() {
   return new S3Client({
-    region: ENV.awsRegion || "us-east-1",
+    region: ENV.awsRegion || "auto",
     credentials: {
       accessKeyId: ENV.awsAccessKeyId,
       secretAccessKey: ENV.awsSecretAccessKey,
     },
+    ...(ENV.awsEndpointUrl ? { endpoint: ENV.awsEndpointUrl } : {}),
   });
 }
 
