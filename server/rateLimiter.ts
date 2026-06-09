@@ -12,6 +12,11 @@ function makeStore(id: string) {
   return stores.get(id)!;
 }
 
+// Export for testing/resetting
+export function resetRateLimiterForTesting() {
+  stores.clear();
+}
+
 function createLimiter(opts: { windowMs: number; max: number; message?: string }) {
   const store = makeStore(`${opts.windowMs}-${opts.max}`);
   return (req: Request, res: Response, next: NextFunction) => {
@@ -47,4 +52,7 @@ export const loginLimiter     = createLimiter({ windowMs: 15 * 60 * 1000, max: 1
 export const signupLimiter    = createLimiter({ windowMs: 60 * 60 * 1000, max: 5,   message: "Too many signup attempts. Try again in an hour." });
 export const messagingLimiter = createLimiter({ windowMs: 15 * 60 * 1000, max: 100, message: "Message rate limit exceeded." });
 export const uploadLimiter    = createLimiter({ windowMs: 15 * 60 * 1000, max: 20,  message: "Upload limit reached. Try again later." });
-export const generalApiLimiter= createLimiter({ windowMs: 15 * 60 * 1000, max: 300, message: "API rate limit exceeded." });
+// Increased from 300 to 1000 to accommodate polling queries (notifications, etc.)
+export const generalApiLimiter= createLimiter({ windowMs: 15 * 60 * 1000, max: 1000, message: "API rate limit exceeded." });
+// Separate limiter for notifications polling - very permissive since it's low-cost queries
+export const notificationsLimiter = createLimiter({ windowMs: 1 * 60 * 1000, max: 200, message: "Notification polling rate limit exceeded." });

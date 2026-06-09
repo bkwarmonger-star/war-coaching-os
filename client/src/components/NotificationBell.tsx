@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import * as React from "react";
 import { trpc } from "@/lib/trpc";
 
 function timeAgo(date: Date | string): string {
@@ -16,7 +17,14 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const { data: countData, refetch: refetchCount } = trpc.notifications.unreadCount.useQuery(undefined, { refetchInterval: 30000 });
+  // Only poll when page is visible to reduce API calls
+  const [isVisible, setIsVisible] = React.useState(true);
+  React.useEffect(() => {
+    const handleVisibility = () => setIsVisible(!document.hidden);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
+  const { data: countData, refetch: refetchCount } = trpc.notifications.unreadCount.useQuery(undefined, { refetchInterval: isVisible ? 30000 : false });
   const { data: notifs, refetch: refetchList } = trpc.notifications.list.useQuery(undefined, { enabled: open });
   const markReadMutation = trpc.notifications.markRead.useMutation({ onSuccess: () => { refetchCount(); refetchList(); } });
   const markAllMutation = trpc.notifications.markAllRead.useMutation({ onSuccess: () => { refetchCount(); refetchList(); } });

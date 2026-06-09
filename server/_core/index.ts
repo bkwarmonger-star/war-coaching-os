@@ -10,7 +10,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { getDb } from "../db";
 import { ENV } from "./env";
-import { loginLimiter, signupLimiter, messagingLimiter, uploadLimiter, generalApiLimiter } from "../rateLimiter";
+import { loginLimiter, signupLimiter, messagingLimiter, uploadLimiter, generalApiLimiter, notificationsLimiter, resetRateLimiterForTesting } from "../rateLimiter";
 import { startScheduler } from "../scheduler";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -54,14 +54,24 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
 
+  // Reset rate limiter on startup (for development/testing)
+  if (process.env.NODE_ENV === "development") {
+    resetRateLimiterForTesting();
+  }
+
   // Rate limiting — applied before tRPC handler
   app.use("/api/trpc/auth.clientLogin", loginLimiter);
   app.use("/api/trpc/auth.clientRegister", signupLimiter);
   app.use("/api/trpc/forgotPassword", loginLimiter);
   app.use("/api/trpc/messages.send", messagingLimiter);
   app.use("/api/trpc/portal.sendMessage", messagingLimiter);
+  app.use("/api/trpc/notifications.unreadCount", notificationsLimiter);
   app.use("/api/storage", uploadLimiter);
-  app.use("/api/trpc", generalApiLimiter);
+  // General limiter - skip notifications since it has its own limiter
+  app.use("/api/trpc", (req, res, next) => {
+    if (req.url.includes("notifications.unreadCount")) return next();
+    generalApiLimiter(req, res, next);
+  });
 
   // Generator endpoints
   // Health endpoint for readiness checks (returns DB availability)
