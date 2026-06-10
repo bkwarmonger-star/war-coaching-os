@@ -40,7 +40,6 @@ async function startServer() {
   if (process.env.NODE_ENV === "production") {
     const missing: string[] = [];
     if (!process.env.DATABASE_URL) missing.push("DATABASE_URL");
-    if (!ENV.llmApiKey) missing.push("LLM_API_KEY");
     if (!process.env.JWT_SECRET) missing.push("JWT_SECRET");
     if (missing.length > 0) {
       throw new Error(`Missing required environment variables for production: ${missing.join(", ")}`);
