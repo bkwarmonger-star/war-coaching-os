@@ -8,7 +8,7 @@ WORKDIR /app
 # Install pnpm
 RUN npm install -g pnpm@10.4.1
 
-# Copy package files
+# Copy package files and patches
 COPY package.json pnpm-lock.yaml ./
 COPY patches ./patches
 
@@ -29,7 +29,7 @@ WORKDIR /app
 # Install pnpm
 RUN npm install -g pnpm@10.4.1
 
-# Copy package files from builder
+# Copy package files and patches
 COPY package.json pnpm-lock.yaml ./
 COPY patches ./patches
 
